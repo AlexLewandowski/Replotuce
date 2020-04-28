@@ -76,6 +76,10 @@ function get_plot(;
 
     println(labels)
 
+    fnt = Plots.font("Helvetica", 10)
+    legend_fnt = Plots.font("Helvetica", 7)
+    default(titlefont=fnt, guidefont=fnt, tickfont=fnt, legendfont=legend_fnt)
+
     plot(
         1:T,
         y_to_plot,
@@ -84,12 +88,15 @@ function get_plot(;
         label = labels,
         linestyle = get_styles(top_n),
         title = "Average Return over number of policy improvements",
-        legend = :best,
+        legend = :topleft,
+        #foreground_color_legend = nothing,
+        background_color_legend = nothing,
     )
 
     xlabel!("Number of Policy Improvements")
     ylabel!("Average Return")
-    savefig(results_dir*metric_key*".pdf")
+    mkpath(results_dir*"plots/")
+    savefig(results_dir*"plots/"*metric_key*".pdf")
 
 end
 

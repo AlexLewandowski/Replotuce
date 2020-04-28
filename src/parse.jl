@@ -10,7 +10,7 @@ function gen_dict(;
     metric_keys_global = []
 
     for key in sweep_keys
-        if key != "seed"
+        if key != "seed" && key != "uniqueID"
             push!(key_list, key)
         end
     end
@@ -37,7 +37,8 @@ function gen_dict(;
             sweep_param = []
 
             for key in sweep_keys
-                if key != "seed"
+
+                if key != "seed" && key != "uniqueID"
                     push!(sweep_param, parsed[key])
                 end
                 if key == sweep_key
