@@ -1,7 +1,7 @@
 function gen_dict(;
     sweep_keys,
     data_dir,
-    primary_metric_key = "returns",
+    primary_metric_key,
     sweep_key = Nothing,
     sweep_val = Nothing,
 )
@@ -34,12 +34,12 @@ function gen_dict(;
             metric_keys_global = copy(metric_keys)
             secondary_metric_keys = filter!(x -> x != primary_metric_key, metric_keys)
 
-            sweep_param = []
+            sweep_param = Dict()
 
             for key in sweep_keys
 
                 if key != "seed" && key != "uniqueID"
-                    push!(sweep_param, parsed[key])
+                    sweep_param[key] = parsed[key]
                 end
                 if key == sweep_key
                     if parsed[key] == sweep_val
@@ -64,20 +64,24 @@ function gen_dict(;
     return sweep_dict, key_list, metric_keys_global
 end
 
-function gen_scores(; sweep_dict, primary_metric_key = "returns")
+function gen_scores(; sweep_dict, primary_metric_key = "returns", AUC = false)
     sweep_keys = collect(keys(sweep_dict))
-    primary_dict = Dict()
+    score_dict = Dict()
 
     for key in sweep_keys
         infos = sweep_dict[key]
-        sum_of_means = 0
-        n = 0
+        per_seed = []
         for info in infos
-            sum_of_means += mean(info[primary_metric_key])
-            n += 1
+            if AUC
+                statistic = mean(info[primary_metric_key])
+            else
+                statistic = info[primary_metric_key][end]
+            end
+            per_seed = push!(per_seed, statistic)
         end
-        mean_of_means = sum_of_means / n
-        push_dict!(primary_dict, mean_of_means, key)
+        mean_per_seed = mean(per_seed)
+        std_per_seed = std(per_seed)
+        push_dict!(score_dict, mean_per_seed, key)
     end
-    return primary_dict
+    return score_dict
 end

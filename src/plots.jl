@@ -10,37 +10,66 @@ end
 
 function format_config(config)
     formatted_config = []
-    for c in config
-        if isa(c, Number)
-            push!(formatted_config, round(c, sigdigits = 3))
-        else
-            push!(formatted_config, c)
+    key_list = collect(keys(config))
+    for key in key_list
+        val = config[key]
+        if isa(val, Number)
+            val = round(val, sigdigits = 3)
         end
+        push!(formatted_config, string(key)*"="*string(val))
     end
-    return formatted_config
+    return join(formatted_config, ",")
 end
 
 function get_plot(;
-    primary_dict,
+    score_dict,
     sweep_dict,
     key_list,
     results_dir,
     metric_key,
+    primary_metric_key,
+    profiler::Array = [[[]]],
+    top_n = 3,
 )
-    sorted_scores = sort(collect(keys(primary_dict)), rev = true)
+    if length(profiler[1][1]) > 0
+        reverse_score_list = Dict(value => key for (key, value) in score_dict)
+        k = collect(keys(reverse_score_list))
+        top_scores = []
+        for profile in profiler
+            new_ks = copy(k)
+            local_top_scores = []
+            for setting in profile
+                filter!(x -> x[1][setting[1]] == setting[2], new_ks)
+            end
+            for new_k in new_ks
+                push!(local_top_scores, reverse_score_list[new_k])
+            end
+            sort!(local_top_scores, rev=true)
+            if length(local_top_scores) < top_n
+                println("top_n is too high! top_n = " *string(top_n))
+                println("This profile is: " *string(profile))
+                println("And it only yields: " *string(length(local_top_scores)))
+                throw("Error!!")
+            end
+            push!(top_scores, local_top_scores[1:top_n]...)
+        end
+    else
+        sorted_scores = sort(collect(keys(score_dict)), rev = true)
+        top_scores = sorted_scores[1:top_n]
+    end
 
-    top_n = 3
-    top_scores = sorted_scores[1:top_n]
-    println(top_scores)
+
+
 
     y_to_plot = []
     σs = []
     labels = []
 
     for score in top_scores
-        config = primary_dict[score]
+        config = score_dict[score]
         if length(config) > 1
-            print("There are multiple configurations with the same score: ", config)
+            println("There are multiple configurations with the same score: ", config)
+            println(score)
             break
         end
 
@@ -60,25 +89,24 @@ function get_plot(;
         stacked_data = hcat(data...)
 
         y_data = mean(stacked_data, dims = 2)
-        σ = 1.96 * std(stacked_data, dims = 2) / sqrt(N)
+        σ =  1.96*std(stacked_data, dims = 2) / sqrt(N)
 
+        if metric_key == primary_metric_key
+            print(format_config(config))
+            print(" | "*string(y_data[end]))
+            println(" | "*string(σ[end]))
+        end
         push!(y_to_plot, y_data)
         push!(σs, σ)
     end
 
     T = length(y_to_plot[1])
 
-    print(labels)
-
-    key_list = map(x -> *(x, " = "), key_list)
-    labels = map(x -> join(map(join, collect(zip(key_list, x))), ", "), labels)
     labels = reshape(labels, 1, :)
-
-    println(labels)
 
     fnt = Plots.font("Helvetica", 10)
     legend_fnt = Plots.font("Helvetica", 7)
-    default(titlefont=fnt, guidefont=fnt, tickfont=fnt, legendfont=legend_fnt)
+    default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
     plot(
         1:T,
@@ -95,8 +123,7 @@ function get_plot(;
 
     xlabel!("Number of Policy Improvements")
     ylabel!("Average Return")
-    mkpath(results_dir*"plots/")
-    savefig(results_dir*"plots/"*metric_key*".pdf")
+    mkpath(results_dir * "plots/")
+    savefig(results_dir * "plots/" * metric_key * ".pdf")
 
 end
-
