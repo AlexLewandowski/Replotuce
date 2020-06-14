@@ -8,17 +8,17 @@ function get_styles(n)
     return reshape(styles, 1, n)
 end
 
-function format_config(config)
+function format_config(config, join_str=",")
     formatted_config = []
     key_list = collect(keys(config))
     for key in key_list
         val = config[key]
-        if isa(val, Number)
+        if isa(val, Union{AbstractFloat, Int})
             val = round(val, sigdigits = 3)
         end
         push!(formatted_config, string(key)*"="*string(val))
     end
-    return join(formatted_config, ",")
+    return join(formatted_config, join_str)
 end
 
 function get_plot(;
@@ -28,11 +28,12 @@ function get_plot(;
     results_dir,
     metric_key,
     primary_metric_key,
-    profiler::Array = [[[]]],
+    profiler = [[[]]],
     top_n = 3,
 )
+    println(profiler)
     if length(profiler[1][1]) > 0
-        reverse_score_list = Dict(value => key for (key, value) in score_dict)
+        reverse_score_list = Dict(value[1] => key for (key, value) in score_dict)
         k = collect(keys(reverse_score_list))
         top_scores = []
         for profile in profiler
@@ -58,22 +59,20 @@ function get_plot(;
         top_scores = sorted_scores[1:top_n]
     end
 
-
-
-
     y_to_plot = []
     σs = []
     labels = []
 
     for score in top_scores
-        config = score_dict[score]
-        if length(config) > 1
-            println("There are multiple configurations with the same score: ", config)
+        configs = score_dict[score]
+        if length(configs) > 1
             println(score)
-            break
+            println("There are multiple configurations with the same score: ", configs)
+            println("Using only: ", configs[1][1])
         end
 
-        config = config[1]
+        config = configs[1][1]
+        standard_dev = configs[1][2]
         formatted_config = format_config(config)
 
         labels = push!(labels, formatted_config)
@@ -92,9 +91,13 @@ function get_plot(;
         σ =  1.96*std(stacked_data, dims = 2) / sqrt(N)
 
         if metric_key == primary_metric_key
-            print(format_config(config))
-            print(" | "*string(y_data[end]))
-            println(" | "*string(σ[end]))
+            println(" | ",format_config(config, ", "), " | ")
+            print(" | score:  ", score)
+            print(" | score std err:  ", standard_dev)
+            println()
+            print(" | final performance: ", y_data[end])
+            println(" | final std err: ", σ[end], " | ")
+            println()
         end
         push!(y_to_plot, y_data)
         push!(σs, σ)
@@ -123,7 +126,11 @@ function get_plot(;
 
     xlabel!("Number of Policy Improvements")
     ylabel!("Average Return")
-    mkpath(results_dir * "plots/")
-    savefig(results_dir * "plots/" * metric_key * ".pdf")
+
+    plots_dir = joinpath(results_dir, "plots")
+    mkpath(plots_dir)
+
+    fig_name = joinpath(plots_dir, metric_key*".pdf")
+    savefig(fig_name)
 
 end
