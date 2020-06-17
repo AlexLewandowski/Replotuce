@@ -24,7 +24,7 @@ function gen_dict(;
                 corr_key_val = false
             end
 
-            try:
+            try
                 data = load(string(r, "/", "data.jld2"))
                 settings = load(string(r, "/", "settings.jld2"))
                 parsed = data["parsed"]
