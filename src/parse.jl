@@ -15,6 +15,10 @@ function gen_dict(;
         end
     end
 
+    if !isdir(data_dir)
+        @error data_dir " does not exist!"
+    end
+
     for (r, ds, fs) in walkdir(data_dir)
         if isempty(fs)
         else
@@ -60,7 +64,7 @@ function gen_dict(;
                     push_dict!(sweep_dict, sweep_param, info)
                 end
             catch
-                println(string(r, "/", "data.jld2"), "does not exist!")
+                @warn string(r, "/", "data.jld2") " does not exist!"
             end
 
         end
