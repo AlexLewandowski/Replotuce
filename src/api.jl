@@ -5,7 +5,7 @@ function get_config_data(results_dir)
     data_dir = joinpath(results_dir, "data")
 
     conf = readdir(results_dir)
-    filter!(i -> i[1:6] == "config", conf)
+    filter!(s -> occursin("config", s), conf)
 
     @assert length(conf) == 1
 
