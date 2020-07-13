@@ -28,6 +28,18 @@ function get_plots(;
     else
         score_dict = best_score_dict
     end
+
+    if typeof(profiler) == String
+        config_file, _ = get_config_data(results_dir)
+        vals = eval(Meta.parse(TOML.parsefile(config_file)["sweep_args"][profiler]))
+        temp_profiler = []
+        for val in vals
+            entry = [[[profiler, val]]]
+            append!(temp_profiler, entry)
+        end
+        profiler = temp_profiler
+    end
+
     for metric_key in metric_keys
         get_plot(
             sweep_dict = sweep_dict,
