@@ -1,4 +1,5 @@
 using JLD2: @save
+using Pkg.TOML
 
 
 function get_config_data(results_dir)
@@ -14,11 +15,35 @@ function get_config_data(results_dir)
     return config_file, data_dir
 end
 
+function get_titles_labels(metric_key, profiler_name, top_n)
+    config_title = " (top " * string(top_n) * ", " * profiler_name * " configurations)"
+    if metric_key == "rollout_returns"
+        title = "Average return" * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Average return"
+    elseif metric_key == "train_buffer_loss"
+        title = "Training buffer loss" * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Training loss"
+    elseif metric_key == "estimate_value"
+        title = "Estimated value" * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Estimated value"
+    elseif metric_key == "mean_weights"
+        title = "Mean weights" * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Mean weights"
+    end
+
+    return title, xlabel, ylabel
+end
+
 function get_plots(;
     results_dir = "_results/",
     primary_metric_key = "rollout_returns",
     top_n = 3,
     profiler = [[[]]],
+    profiler_name = "all",
     AUC = true,
 )
     sweep_dict, auc_score_dict, best_score_dict, key_list, metric_keys =
@@ -31,24 +56,37 @@ function get_plots(;
 
     if typeof(profiler) == String
         config_file, _ = get_config_data(results_dir)
-        vals = eval(Meta.parse(TOML.parsefile(config_file)["sweep_args"][profiler]))
+        vals = eval(TOML.parsefile(config_file)["sweep_args"][profiler])
+        try
+            vals = eval(Meta.parse(TOML.parsefile(config_file)["sweep_args"][profiler]))
+        catch
+            vals = eval(TOML.parsefile(config_file)["sweep_args"][profiler])
+        end
+
         temp_profiler = []
         for val in vals
             entry = [[[profiler, val]]]
             append!(temp_profiler, entry)
         end
+        profiler_name = profiler
         profiler = temp_profiler
     end
 
     for metric_key in metric_keys
+        title, xlabel, ylabel = get_titles_labels(metric_key, profiler_name, top_n)
+
         get_plot(
             sweep_dict = sweep_dict,
             score_dict = score_dict,
             key_list = key_list,
             metric_key = metric_key,
+            title = title,
+            xlabel = xlabel,
+            ylabel = ylabel,
             results_dir = results_dir,
             primary_metric_key = primary_metric_key,
             profiler = profiler,
+            profiler_name = profiler_name,
             top_n = top_n,
         )
     end
