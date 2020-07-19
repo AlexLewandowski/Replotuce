@@ -33,6 +33,10 @@ function get_titles_labels(metric_key, profiler_name, top_n)
         title = "Mean weights" * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Mean weights"
+    elseif metric_key == "online_returns"
+        title = "Average return" * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Average return"
     end
 
     return title, xlabel, ylabel
@@ -44,14 +48,17 @@ function get_plots(;
     top_n = 3,
     profiler = [[[]]],
     profiler_name = "all",
-    AUC = true,
+    AUC = false,
+    MAX = false,
 )
-    sweep_dict, auc_score_dict, best_score_dict, key_list, metric_keys =
+    sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
         get_dicts(results_dir = results_dir, primary_metric_key = primary_metric_key)
     if AUC
         score_dict = auc_score_dict
+    elseif MAX
+        score_dict = max_score_dict
     else
-        score_dict = best_score_dict
+        score_dict = end_score_dict
     end
 
     if typeof(profiler) == String
@@ -101,11 +108,11 @@ function get_dicts(; results_dir = "_results/", primary_metric_key = "rollout_re
         all_dicts = load(dict_path)
 
         sweep_dict = all_dicts["sweep_dict"]
-        best_score_dict = all_dicts["best_score_dict"]
+        end_score_dict = all_dicts["end_score_dict"]
+        max_score_dict = all_dicts["max_score_dict"]
         auc_score_dict = all_dicts["auc_score_dict"]
         key_list = all_dicts["key_list"]
         metric_keys = all_dicts["metric_keys"]
-
     else
         config_file, data_dir = get_config_data(results_dir)
         sweep_keys = keys(parsefile(config_file)["sweep_args"])
@@ -120,15 +127,24 @@ function get_dicts(; results_dir = "_results/", primary_metric_key = "rollout_re
             sweep_dict = sweep_dict,
             primary_metric_key = primary_metric_key,
             AUC = true,
+            MAX = false,
         )
 
-        best_score_dict = gen_scores(
+        end_score_dict = gen_scores(
             sweep_dict = sweep_dict,
             primary_metric_key = primary_metric_key,
             AUC = false,
+            MAX = false,
         )
 
-        @save joinpath(dict_path) sweep_dict auc_score_dict best_score_dict key_list metric_keys
+        max_score_dict = gen_scores(
+            sweep_dict = sweep_dict,
+            primary_metric_key = primary_metric_key,
+            AUC = false,
+            MAX = true,
+        )
+
+        @save joinpath(dict_path) sweep_dict auc_score_dict end_score_dict max_score_dict key_list metric_keys
     end
-    return sweep_dict, auc_score_dict, best_score_dict, key_list, metric_keys
+    return sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys
 end

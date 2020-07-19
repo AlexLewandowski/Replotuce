@@ -62,17 +62,18 @@ function gen_dict(;
                         info[secondary_metric_key] = data["cb_dict"][secondary_metric_key]
                     end
                     push_dict!(sweep_dict, sweep_param, info)
+                    # close(data)
+                    # close(settings)
                 end
             catch
                 @warn string(r, "/", "data.jld2") " does not exist!"
             end
-
         end
     end
     return sweep_dict, key_list, metric_keys_global
 end
 
-function gen_scores(; sweep_dict, primary_metric_key = "returns", AUC = false)
+function gen_scores(; sweep_dict, primary_metric_key = "returns", AUC = false, MAX = false)
     sweep_keys = collect(keys(sweep_dict))
     score_dict = Dict()
 
@@ -80,17 +81,24 @@ function gen_scores(; sweep_dict, primary_metric_key = "returns", AUC = false)
         infos = sweep_dict[key]
         per_seed = []
         for info in infos
-            if AUC
-                statistic = mean(info[primary_metric_key])
-            else
-                statistic = info[primary_metric_key][end]
-            end
-            per_seed = push!(per_seed, statistic)
+            per_seed = push!(per_seed, info[primary_metric_key])
+        end
+        per_seed_mat = hcat(per_seed...)
+        if AUC
+            statistic = mean(per_seed_mat)
+            std_per_seed = std(mean(per_seed_mat, dims = 1))
+        elseif MAX
+            ind = argmax(mean(per_seed_mat, dims = 2))[1]
+            statistic = mean(per_seed_mat[ind, :])
+            std_per_seed = std(per_seed_mat[ind, :])
+        else
+            statistic = mean(per_seed_mat[end, :])
+            std_per_seed = std(per_seed_mat[end, :])
         end
         num_seeds = length(per_seed)
         mean_per_seed = mean(per_seed)
-        std_per_seed = 1.96 * std(per_seed) / sqrt(num_seeds)
-        push_dict!(score_dict, mean_per_seed, [key, std_per_seed])
+        se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
+        push_dict!(score_dict, statistic, [key, se_per_seed])
     end
     return score_dict
 end

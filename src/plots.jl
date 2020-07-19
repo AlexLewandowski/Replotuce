@@ -74,9 +74,9 @@ function get_plot(;
         if length(configs) > 1
             println(score)
             println("There are multiple configurations with the same score: ")
-            # for config in configs
-            #     println(config)
-            # end
+            for config in configs
+                println(config)
+            end
             println("Using only: ", configs[1][1])
         end
 
@@ -84,6 +84,7 @@ function get_plot(;
         standard_dev = configs[1][2]
         formatted_config = format_config(config)
 
+        println(config)
         labels = push!(labels, formatted_config)
 
         info_dicts = sweep_dict[config]
@@ -108,7 +109,7 @@ function get_plot(;
             println(" | final std err: ", σ[end], " | ")
             println()
         end
-        push!(y_to_plot, y_data)
+        push!(y_to_plot, y_data[1:21])
         push!(σs, σ)
     end
 
@@ -129,7 +130,6 @@ function get_plot(;
         linestyle = get_styles(num_lines),
         title = title,
         legend = :topleft,
-        #foreground_color_legend = nothing,
         background_color_legend = nothing,
     )
 
