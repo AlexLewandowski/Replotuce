@@ -36,52 +36,43 @@ function get_plot(;
     top_n = 3,
 )
     println(profiler)
+    k = collect(keys(score_dict))
     if length(profiler[1][1]) > 0
-        reverse_score_list = Dict(value[1] => key for (key, value) in score_dict)
-        k = collect(keys(reverse_score_list))
-        top_scores = []
+        top_keys = []
         for profile in profiler
             new_ks = copy(k)
-            local_top_scores = []
+            local_top_keys = []
             for setting in profile
-                filter!(x -> x[1][setting[1]] == setting[2], new_ks)
+                filter!(x -> x[setting[1]] == setting[2], new_ks)
             end
             for new_k in new_ks
-                push!(local_top_scores, reverse_score_list[new_k])
+                push!(local_top_keys, new_k)
             end
-            sort!(local_top_scores, rev = true)
-            if length(local_top_scores) < top_n
+            sort!(local_top_keys, by=x->score_dict[x][1][1], rev = true)
+            if length(local_top_keys) < top_n
                 println("top_n is too high! top_n = " * string(top_n))
                 println("This profile is: " * string(profile))
-                println("And it only yields: " * string(length(local_top_scores)))
+                println("And it only yields: " * string(length(local_top_keys)))
                 throw("Error!!")
             end
-            push!(top_scores, local_top_scores[1:top_n]...)
+            push!(top_keys, local_top_keys[1:top_n]...)
         end
-        num_lines = length(top_scores)
     else
-        sorted_scores = sort(collect(keys(score_dict)), rev = true)
-        top_scores = sorted_scores[1:top_n]
-        num_lines = length(top_scores)
+        sorted_keys = sort(k, by=x->score_dict[x][1][1], rev = true)
+        top_keys = sorted_keys[1:top_n]
     end
+
+    num_lines = length(top_keys)
 
     y_to_plot = []
     σs = []
     labels = []
 
-    for score in top_scores
-        configs = score_dict[score]
-        if length(configs) > 1
-            println(score)
-            println("There are multiple configurations with the same score: ")
-            for config in configs
-                println(config)
-            end
-            println("Using only: ", configs[1][1])
-        end
+    for key in top_keys
+        score = score_dict[key][1][1]
+        config = key
 
-        config = configs[1][1]
-        standard_dev = configs[1][2]
+        standard_dev = score_dict[key][1][2]
         formatted_config = format_config(config)
 
         println(config)
@@ -109,7 +100,7 @@ function get_plot(;
             println(" | final std err: ", σ[end], " | ")
             println()
         end
-        push!(y_to_plot, y_data[1:21])
+        push!(y_to_plot, y_data[2:end])
         push!(σs, σ)
     end
 

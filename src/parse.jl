@@ -98,7 +98,8 @@ function gen_scores(; sweep_dict, primary_metric_key = "returns", AUC = false, M
         num_seeds = length(per_seed)
         mean_per_seed = mean(per_seed)
         se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
-        push_dict!(score_dict, statistic, [key, se_per_seed])
+        push_dict!(score_dict, key, [statistic, se_per_seed])
+
     end
     return score_dict
 end

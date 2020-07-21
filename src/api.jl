@@ -21,6 +21,11 @@ function get_titles_labels(metric_key, profiler_name, top_n)
         title = "Average return" * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
+
+    elseif metric_key == "average_return"
+        title = "Average return" * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Average return"
     elseif metric_key == "train_buffer_loss"
         title = "Training buffer loss" * config_title
         xlabel = "Number of gradient steps"
@@ -44,7 +49,7 @@ end
 
 function get_plots(;
     results_dir = "_results/",
-    primary_metric_key = "rollout_returns",
+    primary_metric_key = "average_return",
     top_n = 3,
     profiler = [[[]]],
     profiler_name = "all",
@@ -99,7 +104,7 @@ function get_plots(;
     end
 end
 
-function get_dicts(; results_dir = "_results/", primary_metric_key = "rollout_returns")
+function get_dicts(; results_dir = "_results/", primary_metric_key = "average_return")
     dict_path = joinpath(results_dir, "dicts.jld2")
 
     if isfile(dict_path)
