@@ -18,30 +18,33 @@ end
 function get_titles_labels(metric_key, profiler_name, top_n)
     config_title = " (top " * string(top_n) * ", " * profiler_name * " configurations)"
     if metric_key == "rollout_returns"
-        title = "Average return" * config_title
+        title = "Average return" #* config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
-
     elseif metric_key == "average_return"
-        title = "Average return" * config_title
+        title = "Average return" #* config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
     elseif metric_key == "train_buffer_loss"
-        title = "Training buffer loss" * config_title
+        title = "Training buffer loss"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Training loss"
     elseif metric_key == "estimate_value"
-        title = "Estimated value" * config_title
+        title = "Estimated value"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Estimated value"
     elseif metric_key == "mean_weights"
-        title = "Mean weights" * config_title
+        title = "Mean weights"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Mean weights"
     elseif metric_key == "online_returns"
-        title = "Average return" * config_title
+        title = "Average return"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
+    elseif metric_key == "action_gap"
+        title = "Average Action gap"# * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Action gap"
     end
 
     return title, xlabel, ylabel

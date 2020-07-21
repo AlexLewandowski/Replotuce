@@ -12,11 +12,14 @@ function format_config(config, join_str = ",")
     formatted_config = []
     key_list = collect(keys(config))
     for key in key_list
-        val = config[key]
-        if isa(val, Union{AbstractFloat,Int})
-            val = round(val, sigdigits = 3)
+        if key == "lr"
+        else
+            val = config[key]
+            if isa(val, Union{AbstractFloat,Int})
+                val = round(val, sigdigits = 3)
+            end
+            push!(formatted_config, string(key) * "=" * string(val))
         end
-        push!(formatted_config, string(key) * "=" * string(val))
     end
     return join(formatted_config, join_str)
 end
@@ -112,8 +115,9 @@ function get_plot(;
     legend_fnt = Plots.font("Helvetica", 7)
     default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
+    x = 1:T
     plot(
-        1:T,
+        100*x,
         y_to_plot,
         ribbon = σs,
         fillalpha = 0.5,
