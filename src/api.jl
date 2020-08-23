@@ -21,38 +21,45 @@ function get_titles_labels(metric_key, profiler_name, top_n)
         title = "Average return" #* config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
-    elseif metric_key == "average_return"
-        title = "Average return" #* config_title
+    elseif metric_key == "average_returns"
+        title = "Average Return" #* config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
     elseif metric_key == "train_buffer_loss"
-        title = "Training buffer loss"# * config_title
+        title = "Training Buffer Loss"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Training loss"
     elseif metric_key == "estimate_value"
-        title = "Estimated value"# * config_title
+        title = "Mean Estimated Value in Training Buffer"# * config_title
+        xlabel = "Number of gradient steps"
+        ylabel = "Estimated value"
+    elseif metric_key == "estimate_startvalue"
+        title = "Estimated Value at Start State"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Estimated value"
     elseif metric_key == "mean_weights"
-        title = "Mean weights"# * config_title
+        title = "Mean of Recurrent Weights"# * config_title
         xlabel = "Number of gradient steps"
-        ylabel = "Mean weights"
+        ylabel = "Mean weight"
     elseif metric_key == "online_returns"
-        title = "Average return"# * config_title
+        title = "Online Return"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Average return"
     elseif metric_key == "action_gap"
-        title = "Average Action gap"# * config_title
+        title = "Average Action-Gap"# * config_title
         xlabel = "Number of gradient steps"
         ylabel = "Action gap"
+    else
+        title = metric_key
+        xlabel = "Number of gradient steps"
+        ylabel = metric_key
     end
-
     return title, xlabel, ylabel
 end
 
 function get_plots(;
     results_dir = "_results/",
-    primary_metric_key = "average_return",
+    primary_metric_key = "rollout_returns",
     top_n = 3,
     profiler = [[[]]],
     profiler_name = "all",
@@ -60,7 +67,7 @@ function get_plots(;
     MAX = false,
 )
     sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
-        get_dicts(results_dir = results_dir, primary_metric_key = primary_metric_key)
+        get_dicts(results_dir = results_dir)
     if AUC
         score_dict = auc_score_dict
     elseif MAX
@@ -87,6 +94,16 @@ function get_plots(;
         profiler = temp_profiler
     end
 
+    println(profiler)
+
+    filter!(x -> x != "xs", metric_keys)
+
+    if primary_metric_key == "og_buffer_loss"
+        rev = false
+    else
+        rev = true
+    end
+
     for metric_key in metric_keys
         title, xlabel, ylabel = get_titles_labels(metric_key, profiler_name, top_n)
 
@@ -103,11 +120,12 @@ function get_plots(;
             profiler = profiler,
             profiler_name = profiler_name,
             top_n = top_n,
+            rev = rev,
         )
     end
 end
 
-function get_dicts(; results_dir = "_results/", primary_metric_key = "average_return")
+function get_dicts(; results_dir = "_results/")
     dict_path = joinpath(results_dir, "dicts.jld2")
 
     if isfile(dict_path)
@@ -128,26 +146,25 @@ function get_dicts(; results_dir = "_results/", primary_metric_key = "average_re
         sweep_dict, key_list, metric_keys = gen_dict(
             sweep_keys = sweep_keys,
             data_dir = data_dir,
-            primary_metric_key = primary_metric_key,
         )
 
         auc_score_dict = gen_scores(
             sweep_dict = sweep_dict,
-            primary_metric_key = primary_metric_key,
+            metric_keys = metric_keys,
             AUC = true,
             MAX = false,
         )
 
         end_score_dict = gen_scores(
             sweep_dict = sweep_dict,
-            primary_metric_key = primary_metric_key,
+            metric_keys = metric_keys,
             AUC = false,
             MAX = false,
         )
 
         max_score_dict = gen_scores(
             sweep_dict = sweep_dict,
-            primary_metric_key = primary_metric_key,
+            metric_keys = metric_keys,
             AUC = false,
             MAX = true,
         )

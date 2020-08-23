@@ -12,7 +12,7 @@ function format_config(config, join_str = ",")
     formatted_config = []
     key_list = collect(keys(config))
     for key in key_list
-        if key == "lr"
+        if key == "lsr"
         else
             val = config[key]
             if isa(val, Union{AbstractFloat,Int})
@@ -37,8 +37,10 @@ function get_plot(;
     profiler = [[[]]],
     profiler_name,
     top_n = 3,
+    rev = true,
 )
-    println(profiler)
+    score_dict = score_dict[primary_metric_key]
+    println(rev)
     k = collect(keys(score_dict))
     if length(profiler[1][1]) > 0
         top_keys = []
@@ -51,7 +53,7 @@ function get_plot(;
             for new_k in new_ks
                 push!(local_top_keys, new_k)
             end
-            sort!(local_top_keys, by=x->score_dict[x][1][1], rev = true)
+            sort!(local_top_keys, by=x->score_dict[x][1][1], rev = rev)
             if length(local_top_keys) < top_n
                 println("top_n is too high! top_n = " * string(top_n))
                 println("This profile is: " * string(profile))
@@ -61,7 +63,7 @@ function get_plot(;
             push!(top_keys, local_top_keys[1:top_n]...)
         end
     else
-        sorted_keys = sort(k, by=x->score_dict[x][1][1], rev = true)
+        sorted_keys = sort(k, by=x->score_dict[x][1][1], rev = rev)
         top_keys = sorted_keys[1:top_n]
     end
 
@@ -71,6 +73,7 @@ function get_plot(;
     σs = []
     labels = []
 
+    xs = nothing
     for key in top_keys
         score = score_dict[key][1][1]
         config = key
@@ -78,14 +81,16 @@ function get_plot(;
         standard_dev = score_dict[key][1][2]
         formatted_config = format_config(config)
 
-        println(config)
         labels = push!(labels, formatted_config)
 
         info_dicts = sweep_dict[config]
         data = []
         for info_dict in info_dicts
-            push!(data, info_dict[metric_key])
+            ys = map(x-> x[1], info_dict[metric_key])
+
+            push!(data, ys)
         end
+        xs = map(x-> x[2], info_dicts[1][metric_key])
 
         N = size(data)[1]
 
@@ -103,7 +108,7 @@ function get_plot(;
             println(" | final std err: ", σ[end], " | ")
             println()
         end
-        push!(y_to_plot, y_data[2:end])
+        push!(y_to_plot, y_data)
         push!(σs, σ)
     end
 
@@ -115,15 +120,16 @@ function get_plot(;
     legend_fnt = Plots.font("Helvetica", 7)
     default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
-    x = 1:T
     plot(
-        100*x,
+        xs,
         y_to_plot,
         ribbon = σs,
         fillalpha = 0.5,
         label = labels,
         linestyle = get_styles(num_lines),
         title = title,
+        xlims = (0,Inf),
+        ylims = [0,Inf],
         legend = :topleft,
         background_color_legend = nothing,
     )

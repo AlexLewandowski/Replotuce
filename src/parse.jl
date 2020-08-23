@@ -1,7 +1,6 @@
 function gen_dict(;
     sweep_keys,
     data_dir,
-    primary_metric_key,
     sweep_key = Nothing,
     sweep_val = Nothing,
 )
@@ -21,6 +20,7 @@ function gen_dict(;
 
     for (r, ds, fs) in walkdir(data_dir)
         if isempty(fs)
+            println("EMPTY")
         else
             if sweep_key == Nothing
                 corr_key_val = true
@@ -28,78 +28,80 @@ function gen_dict(;
                 corr_key_val = false
             end
 
-            try
-                data = load(string(r, "/", "data.jld2"))
-                settings = load(string(r, "/", "settings.jld2"))
-                parsed = data["parsed"]
+            data = load(string(r, "/", "data.jld2"))
+            settings = load(string(r, "/", "settings.jld2"))
 
-                primary_metric = data["cb_dict"][primary_metric_key]
+            parsed = data["parsed"]
 
-                metric_keys = collect(keys(data["cb_dict"]))
-                metric_keys_global = copy(metric_keys)
-                secondary_metric_keys = filter!(x -> x != primary_metric_key, metric_keys)
 
-                sweep_param = Dict()
+            metric_keys = collect(keys(data["cb_dict"]))
+            metric_keys_global = copy(metric_keys)
 
-                for key in sweep_keys
+            sweep_param = Dict()
 
-                    if key != "seed" && key != "uniqueID"
-                        sweep_param[key] = parsed[key]
-                    end
-                    if key == sweep_key
-                        if parsed[key] == sweep_val
-                            corr_key_val = true
-                        end
+            for key in sweep_keys
+
+                if key != "seed" && key != "uniqueID"
+                    sweep_param[key] = parsed[key]
+                end
+                if key == sweep_key
+                    if parsed[key] == sweep_val
+                        corr_key_val = true
                     end
                 end
+            end
 
-                if corr_key_val == true
-                    info = Dict([
-                        ("settings", settings),
-                        (primary_metric_key, primary_metric),
-                    ])
-                    for secondary_metric_key in secondary_metric_keys
-                        info[secondary_metric_key] = data["cb_dict"][secondary_metric_key]
-                    end
-                    push_dict!(sweep_dict, sweep_param, info)
-                    # close(data)
-                    # close(settings)
+            if corr_key_val == true
+                info = Dict[]
+                info = Dict([
+                    ("settings", settings),
+                    (metric_keys[1], data["cb_dict"][metric_keys[1]])
+                ])
+                for metric_key in metric_keys[2:end]
+                    info[metric_key] = data["cb_dict"][metric_key]
                 end
-            catch
-                @warn string(r, "/", "data.jld2") " does not exist!"
+                push_dict!(sweep_dict, sweep_param, info)
+                # close(data)
+                # close(settings)
             end
         end
     end
     return sweep_dict, key_list, metric_keys_global
 end
 
-function gen_scores(; sweep_dict, primary_metric_key = "returns", AUC = false, MAX = false)
+function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
     sweep_keys = collect(keys(sweep_dict))
-    score_dict = Dict()
+    all_score_dict = Dict()
 
-    for key in sweep_keys
-        infos = sweep_dict[key]
-        per_seed = []
-        for info in infos
-            per_seed = push!(per_seed, info[primary_metric_key])
-        end
-        per_seed_mat = hcat(per_seed...)
-        if AUC
-            statistic = mean(per_seed_mat)
-            std_per_seed = std(mean(per_seed_mat, dims = 1))
-        elseif MAX
-            ind = argmax(mean(per_seed_mat, dims = 2))[1]
-            statistic = mean(per_seed_mat[ind, :])
-            std_per_seed = std(per_seed_mat[ind, :])
-        else
-            statistic = mean(per_seed_mat[end, :])
-            std_per_seed = std(per_seed_mat[end, :])
-        end
-        num_seeds = length(per_seed)
-        mean_per_seed = mean(per_seed)
-        se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
-        push_dict!(score_dict, key, [statistic, se_per_seed])
+    for metric_key in metric_keys
+        primary_metric_key = metric_key
+        score_dict = Dict()
 
+        for key in sweep_keys
+            infos = sweep_dict[key]
+            per_seed = []
+            for info in infos
+                stat = map(x-> x[1], info[primary_metric_key])
+                per_seed = push!(per_seed, stat)
+            end
+            per_seed_mat = hcat(per_seed...)
+            if AUC
+                statistic = mean(per_seed_mat)
+                std_per_seed = std(mean(per_seed_mat, dims = 1))
+            elseif MAX
+                ind = argmax(mean(per_seed_mat, dims = 2))[1]
+                statistic = mean(per_seed_mat[ind, :])
+                std_per_seed = std(per_seed_mat[ind, :])
+            else
+                statistic = mean(per_seed_mat[end, :])
+                std_per_seed = std(per_seed_mat[end, :])
+            end
+            num_seeds = length(per_seed)
+            mean_per_seed = mean(per_seed)
+            se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
+            push_dict!(score_dict, key, [statistic, se_per_seed])
+        end
+        all_score_dict[metric_key] = score_dict
     end
-    return score_dict
+    return all_score_dict
 end
