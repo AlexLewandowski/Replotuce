@@ -2,7 +2,7 @@ module Replotuce
 
 using Plots
 import Pkg.TOML: parsefile
-import FileIO: load
+import FileIO
 import StatsBase: mean, std
 
 

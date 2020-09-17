@@ -28,13 +28,13 @@ function gen_dict(;
                 corr_key_val = false
             end
 
-            data = load(string(r, "/", "data.jld2"))
-            settings = load(string(r, "/", "settings.jld2"))
+            data = FileIO.load(string(r, "/", "data.jld2"))
+            settings = FileIO.load(string(r, "/", "settings.jld2"))
 
             parsed = data["parsed"]
 
 
-            metric_keys = collect(keys(data["cb_dict"]))
+            metric_keys = collect(keys(data["agent.cb_dict"]))
             metric_keys_global = copy(metric_keys)
 
             sweep_param = Dict()
@@ -55,10 +55,10 @@ function gen_dict(;
                 info = Dict[]
                 info = Dict([
                     ("settings", settings),
-                    (metric_keys[1], data["cb_dict"][metric_keys[1]])
+                    (metric_keys[1], data["agent.cb_dict"][metric_keys[1]])
                 ])
                 for metric_key in metric_keys[2:end]
-                    info[metric_key] = data["cb_dict"][metric_key]
+                    info[metric_key] = data["agent.cb_dict"][metric_key]
                 end
                 push_dict!(sweep_dict, sweep_param, info)
                 # close(data)

@@ -1,9 +1,19 @@
 function get_styles(n)
-    lines = Plots.supported_styles()
+    lines = Plots.supported_styles()[2:end]
     L = length(lines)
     styles = []
     for i = 1:n
         styles = vcat(styles, lines[1+i%L])
+    end
+    return reshape(styles, 1, n)
+end
+
+function get_markers(n)
+    markers = Plots.supported_markers()[3:end]
+    L = length(markers)
+    styles = []
+    for i = 1:n
+        styles = vcat(styles, markers[1+i%L])
     end
     return reshape(styles, 1, n)
 end
@@ -24,6 +34,7 @@ function format_config(config, join_str = ",")
     return join(formatted_config, join_str)
 end
 
+
 function get_plot(;
     score_dict,
     sweep_dict,
@@ -34,40 +45,13 @@ function get_plot(;
     xlabel,
     ylabel,
     primary_metric_key,
-    profiler = [[[]]],
     profiler_name,
+    top_keys,
     top_n = 3,
     rev = true,
 )
-    score_dict = score_dict[primary_metric_key]
-    println(rev)
-    k = collect(keys(score_dict))
-    if length(profiler[1][1]) > 0
-        top_keys = []
-        for profile in profiler
-            new_ks = copy(k)
-            local_top_keys = []
-            for setting in profile
-                filter!(x -> x[setting[1]] == setting[2], new_ks)
-            end
-            for new_k in new_ks
-                push!(local_top_keys, new_k)
-            end
-            sort!(local_top_keys, by=x->score_dict[x][1][1], rev = rev)
-            if length(local_top_keys) < top_n
-                println("top_n is too high! top_n = " * string(top_n))
-                println("This profile is: " * string(profile))
-                println("And it only yields: " * string(length(local_top_keys)))
-                throw("Error!!")
-            end
-            push!(top_keys, local_top_keys[1:top_n]...)
-        end
-    else
-        sorted_keys = sort(k, by=x->score_dict[x][1][1], rev = rev)
-        top_keys = sorted_keys[1:top_n]
-    end
 
-    num_lines = length(top_keys)
+    num_plots = length(top_keys)
 
     y_to_plot = []
     σs = []
@@ -126,10 +110,11 @@ function get_plot(;
         ribbon = σs,
         fillalpha = 0.5,
         label = labels,
-        linestyle = get_styles(num_lines),
+        linestyle = get_styles(num_plots),
+        marker = get_markers(num_plots),
         title = title,
         xlims = (0,Inf),
-        ylims = [0,Inf],
+        ylims = [-Inf,Inf],
         legend = :topleft,
         background_color_legend = nothing,
     )
