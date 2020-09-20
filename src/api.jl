@@ -20,39 +20,39 @@ function get_titles_labels(metric_key, profiler_name, top_n)
     config_title = " (top " * string(top_n) * ", " * profiler_name * " configurations)"
     if metric_key == "rollout_returns"
         title = "Average return" #* config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Average return"
     elseif metric_key == "average_returns"
         title = "Average Return" #* config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Average return"
     elseif metric_key == "train_buffer_loss"
         title = "Training Buffer Loss"# * config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Training loss"
     elseif metric_key == "estimate_value"
         title = "Mean Estimated Value in Training Buffer"# * config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Estimated value"
     elseif metric_key == "estimate_startvalue"
         title = "Estimated Value at Start State"# * config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Estimated value"
     elseif metric_key == "mean_weights"
         title = "Mean of Recurrent Weights"# * config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Mean weight"
     elseif metric_key == "online_returns"
         title = "Online Return"# * config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Average return"
     elseif metric_key == "action_gap"
         title = "Average Action-Gap"# * config_title
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = "Action gap"
     else
         title = metric_key
-        xlabel = "Number of gradient steps"
+        xlabel = "Number of epochs"
         ylabel = metric_key
     end
     return title, xlabel, ylabel
@@ -71,7 +71,6 @@ function get_top_keys(score_dict, profiler, top_n, rev)
             for new_k in new_ks
                 push!(local_top_keys, new_k)
             end
-            println(rev)
             sort!(local_top_keys, by=x->score_dict[x][1][1], rev = rev)
             if length(local_top_keys) < top_n
                 println("top_n is too high! top_n = " * string(top_n))
@@ -144,7 +143,6 @@ function load_model(;
     path = sweep_dict[key][seed]["settings"]["parsed_args"]["_SAVE"]
     agent_num = string(100)
     return joinpath(path, "agent-"*agent_num*".bson")
-
 end
 
 function get_plots(;
@@ -155,9 +153,10 @@ function get_plots(;
     profiler_name = "all",
     AUC = false,
     MAX = false,
+    dict_name = "online_dict",
 )
     sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
-        get_dicts(results_dir = results_dir)
+        get_dicts(results_dir = results_dir, dict_name = dict_name)
     if AUC
         score_dict = auc_score_dict
     elseif MAX
@@ -184,11 +183,16 @@ function get_plots(;
         profiler = temp_profiler
     end
 
-    println(profiler)
+    println("Profiling results based on: ", profiler)
 
     filter!(x -> x != "xs", metric_keys)
+    if typeof(primary_metric_key) <: Int
+        primary_metric_key = metric_keys[primary_metric_key]
+    end
 
-    if primary_metric_key == "og_buffer_loss"
+    println("Primary metric key is: ", primary_metric_key)
+
+    if primary_metric_key[1:4] == "loss"
         rev = false
     else
         rev = true
@@ -218,11 +222,12 @@ function get_plots(;
     end
 end
 
-function get_dicts(; results_dir = "_results/")
-    dict_path = joinpath(results_dir, "dicts.jld2")
+function get_dicts(; results_dir = "_results/", dict_name = "online_dict")
+    dict_path = joinpath(results_dir, dict_name*".jld2")
 
     if isfile(dict_path)
 
+        println()
         println(dict_path, " found and loaded")
         all_dicts = FileIO.load(dict_path)
 
@@ -239,6 +244,7 @@ function get_dicts(; results_dir = "_results/")
         sweep_dict, key_list, metric_keys = gen_dict(
             sweep_keys = sweep_keys,
             data_dir = data_dir,
+            dict_name = dict_name,
         )
 
         auc_score_dict = gen_scores(
@@ -265,4 +271,81 @@ function get_dicts(; results_dir = "_results/")
         JLD2.@save joinpath(dict_path) sweep_dict auc_score_dict end_score_dict max_score_dict key_list metric_keys
     end
     return sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys
+end
+
+function get_summaries(;
+    results_dir = "_results/",
+    primary_metric_key = "rollout_returns",
+    top_n = 3,
+    profiler = [[[]]],
+    profiler_name = "all",
+    AUC = false,
+    MAX = false,
+    dict_name = "online_dict",
+)
+    sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
+        get_dicts(results_dir = results_dir, dict_name = dict_name)
+    if AUC
+        score_dict = auc_score_dict
+    elseif MAX
+        score_dict = max_score_dict
+    else
+        score_dict = end_score_dict
+    end
+
+    if typeof(profiler) == String
+        config_file, _ = get_config_data(results_dir)
+        vals = eval(TOML.parsefile(config_file)["sweep_args"][profiler])
+        try
+            vals = eval(Meta.parse(TOML.parsefile(config_file)["sweep_args"][profiler]))
+        catch
+            vals = eval(TOML.parsefile(config_file)["sweep_args"][profiler])
+        end
+
+        temp_profiler = []
+        for val in vals
+            entry = [[[profiler, val]]]
+            append!(temp_profiler, entry)
+        end
+        profiler_name = profiler
+        profiler = temp_profiler
+    end
+
+    println("Profiling results based on: ", profiler)
+
+    filter!(x -> x != "xs", metric_keys)
+    if typeof(primary_metric_key) <: Int
+        primary_metric_key = metric_keys[primary_metric_key]
+    end
+
+    println("Primary metric key is: ", primary_metric_key)
+
+    if primary_metric_key[1:4] == "loss"
+        rev = false
+    else
+        rev = true
+    end
+
+    score_dict = score_dict[primary_metric_key]
+    top_keys = get_top_keys(score_dict, profiler, top_n, rev)
+
+    for metric_key in metric_keys
+        title, xlabel, ylabel = get_titles_labels(metric_key, profiler_name, top_n)
+
+        get_summary(
+            sweep_dict = sweep_dict,
+            score_dict = score_dict,
+            key_list = key_list,
+            metric_key = metric_key,
+            title = title,
+            xlabel = xlabel,
+            ylabel = ylabel,
+            results_dir = results_dir,
+            primary_metric_key = primary_metric_key,
+            profiler_name = profiler_name,
+            top_keys = top_keys,
+            top_n = top_n,
+            rev = rev,
+        )
+    end
 end

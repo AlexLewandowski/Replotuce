@@ -3,6 +3,7 @@ function gen_dict(;
     data_dir,
     sweep_key = Nothing,
     sweep_val = Nothing,
+    dict_name = "online_dict"
 )
     sweep_dict = Dict()
     key_list = []
@@ -20,7 +21,6 @@ function gen_dict(;
 
     for (r, ds, fs) in walkdir(data_dir)
         if isempty(fs)
-            println("EMPTY")
         else
             if sweep_key == Nothing
                 corr_key_val = true
@@ -34,7 +34,7 @@ function gen_dict(;
             parsed = data["parsed"]
 
 
-            metric_keys = collect(keys(data["agent.cb_dict"]))
+            metric_keys = collect(keys(data[dict_name]))
             metric_keys_global = copy(metric_keys)
 
             sweep_param = Dict()
@@ -55,10 +55,10 @@ function gen_dict(;
                 info = Dict[]
                 info = Dict([
                     ("settings", settings),
-                    (metric_keys[1], data["agent.cb_dict"][metric_keys[1]])
+                    (metric_keys[1], data[dict_name][metric_keys[1]])
                 ])
                 for metric_key in metric_keys[2:end]
-                    info[metric_key] = data["agent.cb_dict"][metric_key]
+                    info[metric_key] = data[dict_name][metric_key]
                 end
                 push_dict!(sweep_dict, sweep_param, info)
                 # close(data)

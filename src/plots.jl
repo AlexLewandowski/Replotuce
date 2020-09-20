@@ -71,9 +71,9 @@ function get_plot(;
         data = []
         for info_dict in info_dicts
             ys = map(x-> x[1], info_dict[metric_key])
-
             push!(data, ys)
         end
+
         xs = map(x-> x[2], info_dicts[1][metric_key])
 
         N = size(data)[1]
@@ -104,6 +104,8 @@ function get_plot(;
     legend_fnt = Plots.font("Helvetica", 7)
     default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
+    xs[end] += 1
+
     plot(
         xs,
         y_to_plot,
@@ -128,4 +130,66 @@ function get_plot(;
     fig_name = joinpath(plots_dir, metric_key * "-" * profiler_name * ".pdf")
     savefig(fig_name)
 
+end
+
+function get_summary(;
+    score_dict,
+    sweep_dict,
+    key_list,
+    results_dir,
+    metric_key,
+    title,
+    xlabel,
+    ylabel,
+    primary_metric_key,
+    profiler_name,
+    top_keys,
+    top_n = 3,
+    rev = true,
+)
+
+    num_plots = length(top_keys)
+
+    y_to_plot = []
+    σs = []
+    labels = []
+
+    xs = nothing
+    for key in top_keys
+        score = score_dict[key][1][1]
+        config = key
+
+        standard_dev = score_dict[key][1][2]
+        formatted_config = format_config(config)
+
+        labels = push!(labels, formatted_config)
+
+        info_dicts = sweep_dict[config]
+        data = []
+        for info_dict in info_dicts
+            ys = map(x-> x[1], info_dict[metric_key])
+            push!(data, ys)
+        end
+
+        xs = map(x-> x[2], info_dicts[1][metric_key])
+
+        N = size(data)[1]
+
+        stacked_data = hcat(data...)
+
+        y_data = mean(stacked_data, dims = 2)
+        σ = 1.96 * std(stacked_data, dims = 2) / sqrt(N)
+
+        if metric_key == primary_metric_key
+            println(" | ", format_config(config, ", "), " | ")
+            print(" | score:  ", score)
+            print(" | score std err:  ", standard_dev)
+            println()
+            print(" | final performance: ", y_data[end])
+            println(" | final std err: ", σ[end], " | ")
+            println()
+        end
+        push!(y_to_plot, y_data)
+        push!(σs, σ)
+    end
 end
