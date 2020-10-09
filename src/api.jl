@@ -154,6 +154,7 @@ function get_plots(;
     AUC = false,
     MAX = false,
     dict_name = "online_dict",
+    X_lim = 1,
 )
     sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
         get_dicts(results_dir = results_dir, dict_name = dict_name)
@@ -186,6 +187,9 @@ function get_plots(;
     println("Profiling results based on: ", profiler)
 
     filter!(x -> x != "xs", metric_keys)
+    if primary_metric_key ∉ metric_keys
+        primary_metric_key = 1
+    end
     if typeof(primary_metric_key) <: Int
         primary_metric_key = metric_keys[primary_metric_key]
     end
@@ -218,6 +222,7 @@ function get_plots(;
             top_keys = top_keys,
             top_n = top_n,
             rev = rev,
+            X_lim = X_lim,
         )
     end
 end
@@ -226,7 +231,6 @@ function get_dicts(; results_dir = "_results/", dict_name = "online_dict")
     dict_path = joinpath(results_dir, dict_name*".jld2")
 
     if isfile(dict_path)
-
         println()
         println(dict_path, " found and loaded")
         all_dicts = FileIO.load(dict_path)
@@ -282,6 +286,7 @@ function get_summaries(;
     AUC = false,
     MAX = false,
     dict_name = "online_dict",
+    X_lim = 1.0,
 )
     sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
         get_dicts(results_dir = results_dir, dict_name = dict_name)
@@ -346,6 +351,7 @@ function get_summaries(;
             top_keys = top_keys,
             top_n = top_n,
             rev = rev,
+            X_lim = X_lim,
         )
     end
 end

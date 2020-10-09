@@ -28,6 +28,13 @@ function format_config(config, join_str = ",")
             if isa(val, Union{AbstractFloat,Int})
                 val = round(val, sigdigits = 3)
             end
+            # if string(val) == "RNNOpenLoop"
+            #     val = "RNNOpenLoop-nstep"
+            # end
+            if string(key) == "predict_window"
+                key = "temporal_window"
+                val += 1
+            end
             push!(formatted_config, string(key) * "=" * string(val))
         end
     end
@@ -49,6 +56,7 @@ function get_plot(;
     top_keys,
     top_n = 3,
     rev = true,
+    X_lim = 1,
 )
 
     num_plots = length(top_keys)
@@ -75,12 +83,14 @@ function get_plot(;
         end
 
         xs = map(x-> x[2], info_dicts[1][metric_key])
+        L = Int(floor(length(xs)*X_lim))
+        xs = xs[1:L]
 
         N = size(data)[1]
 
         stacked_data = hcat(data...)
 
-        y_data = mean(stacked_data, dims = 2)
+        y_data = mean(stacked_data, dims = 2)[1:L]
         σ = 1.96 * std(stacked_data, dims = 2) / sqrt(N)
 
         if metric_key == primary_metric_key
@@ -146,6 +156,7 @@ function get_summary(;
     top_keys,
     top_n = 3,
     rev = true,
+    X_lim = 1.0,
 )
 
     num_plots = length(top_keys)
@@ -172,13 +183,15 @@ function get_summary(;
         end
 
         xs = map(x-> x[2], info_dicts[1][metric_key])
+        L = Int(floor(length(xs)*X_lim))
+        xs = xs[1:L]
 
         N = size(data)[1]
 
         stacked_data = hcat(data...)
 
-        y_data = mean(stacked_data, dims = 2)
-        σ = 1.96 * std(stacked_data, dims = 2) / sqrt(N)
+        y_data = mean(stacked_data, dims = 2)[1:L]
+        σ = (1.96 * std(stacked_data, dims = 2) / sqrt(N))[1:L]
 
         if metric_key == primary_metric_key
             println(" | ", format_config(config, ", "), " | ")

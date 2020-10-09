@@ -74,32 +74,37 @@ function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
     all_score_dict = Dict()
 
     for metric_key in metric_keys
-        primary_metric_key = metric_key
         score_dict = Dict()
 
         for key in sweep_keys
             infos = sweep_dict[key]
             per_seed = []
             for info in infos
-                stat = map(x-> x[1], info[primary_metric_key])
+                stat = map(x-> x[1], info[metric_key])
                 per_seed = push!(per_seed, stat)
             end
             per_seed_mat = hcat(per_seed...)
             if AUC
                 statistic = mean(per_seed_mat)
                 std_per_seed = std(mean(per_seed_mat, dims = 1))
+                max_per_seed = maximum(mean(per_seed_mat, dims = 1))
+                min_per_seed = minimum(mean(per_seed_mat, dims = 1))
             elseif MAX
                 ind = argmax(mean(per_seed_mat, dims = 2))[1]
                 statistic = mean(per_seed_mat[ind, :])
                 std_per_seed = std(per_seed_mat[ind, :])
+                max_per_seed = maximum(per_seed_mat[ind, :])
+                min_per_seed = minimum(per_seed_mat[ind, :])
             else
                 statistic = mean(per_seed_mat[end, :])
                 std_per_seed = std(per_seed_mat[end, :])
+                max_per_seed = maximum(per_seed_mat[end, :])
+                min_per_seed = minimum(per_seed_mat[end, :])
             end
             num_seeds = length(per_seed)
             mean_per_seed = mean(per_seed)
             se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
-            push_dict!(score_dict, key, [statistic, se_per_seed])
+            push_dict!(score_dict, key, [statistic, se_per_seed, max_per_seed, min_per_seed])
         end
         all_score_dict[metric_key] = score_dict
     end
