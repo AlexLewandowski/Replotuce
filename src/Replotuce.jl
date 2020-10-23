@@ -11,7 +11,7 @@ include("parse.jl")
 include("plots.jl")
 
 
-export get_plots, get_dicts, get_summaries
+export get_results, get_dicts
 include("api.jl")
 
 end # module
