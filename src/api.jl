@@ -15,6 +15,10 @@ function get_config_data(results_dir)
     return config_file, data_dir
 end
 
+##
+## Register metrics in this function
+##
+
 function get_metric_local(metric_key, profiler_name, top_n)
     config_title = " (top " * string(top_n) * ", " * profiler_name * " configurations)"
 
@@ -208,10 +212,10 @@ function get_results(;
     top_keys = get_top_keys(score_dict, profiler, top_n, higher_is_better)
 
     println()
-    println("Dictionary being used in: ", dict_name)
+    println("Dictionary being used: ", dict_name)
     println()
     for metric_key in metric_keys
-        println("Metric key is: ", metric_key)
+        println("Metric key: ", metric_key)
         println()
         title, xlabel, ylabel, higher_is_better = get_metric_local(metric_key, profiler_name, top_n)
 

@@ -28,9 +28,6 @@ function format_config(config, join_str = ",")
             if isa(val, Union{AbstractFloat,Int})
                 val = round(val, sigdigits = 3)
             end
-            # if string(val) == "RNNOpenLoop"
-            #     val = "RNNOpenLoop-nstep"
-            # end
             if string(key) == "predict_window"
                 key = "temporal_window"
                 val += 1
@@ -40,7 +37,6 @@ function format_config(config, join_str = ",")
     end
     return join(formatted_config, join_str)
 end
-
 
 function get_plot(;
     score_dict,
