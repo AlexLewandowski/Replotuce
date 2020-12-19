@@ -33,7 +33,6 @@ function gen_dict(;
 
             parsed = data["parsed"]
 
-
             metric_keys = collect(keys(data[dict_name]))
             metric_keys_global = copy(metric_keys)
 
@@ -60,6 +59,7 @@ function gen_dict(;
                 for metric_key in metric_keys[2:end]
                     info[metric_key] = data[dict_name][metric_key]
                 end
+                info["metric_keys"] = metric_keys
                 push_dict!(sweep_dict, sweep_param, info)
                 # close(data)
                 # close(settings)
@@ -73,17 +73,26 @@ function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
     sweep_keys = collect(keys(sweep_dict))
     all_score_dict = Dict()
 
-    for metric_key in metric_keys
-        score_dict = Dict()
+    for key in sweep_keys
+        metric_keys = sweep_dict[key][1]["metric_keys"]
+        for metric_key in metric_keys
+            if metric_key in keys(all_score_dict)
+                score_dict = all_score_dict[metric_key]
+            else
+                score_dict = Dict()
+            end
 
-        for key in sweep_keys
             infos = sweep_dict[key]
             per_seed = []
             for info in infos
                 stat = map(x-> x[1], info[metric_key])
                 per_seed = push!(per_seed, stat)
+                if sum(isnan.(stat)) != 0
+                    throw("NaN in loss!!")
+                end
             end
             per_seed_mat = hcat(per_seed...)
+
             if AUC
                 statistic = mean(per_seed_mat)
                 std_per_seed = std(mean(per_seed_mat, dims = 1))
@@ -105,8 +114,8 @@ function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
             mean_per_seed = mean(per_seed)
             se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
             push_dict!(score_dict, key, [statistic, se_per_seed, max_per_seed, min_per_seed])
+            all_score_dict[metric_key] =score_dict
         end
-        all_score_dict[metric_key] = score_dict
     end
     return all_score_dict
 end

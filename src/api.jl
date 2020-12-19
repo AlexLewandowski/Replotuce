@@ -197,8 +197,11 @@ function get_results(;
     println("Profiling results based on: ", profiler)
 
     filter!(x -> x != "xs", metric_keys)
+    println("Primary metric key before is: ", primary_metric_key)
+    println("metric keys: ", metric_keys)
     if primary_metric_key ∉ metric_keys
-        primary_metric_key = 1
+        # primary_metric_key = 1
+        primary_metric_key  = "online_returns"
     end
     if typeof(primary_metric_key) <: Int
         primary_metric_key = metric_keys[primary_metric_key]
@@ -215,11 +218,12 @@ function get_results(;
     println("Dictionary being used: ", dict_name)
     println()
     for metric_key in metric_keys
+        println(metric_key)
         println("Metric key: ", metric_key)
         println()
         title, xlabel, ylabel, higher_is_better = get_metric_local(metric_key, profiler_name, top_n)
 
-        result_type(
+        r = result_type(
             sweep_dict = sweep_dict,
             score_dict = score_dict,
             key_list = key_list,

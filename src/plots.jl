@@ -58,6 +58,7 @@ function get_plot(;
     num_plots = length(top_keys)
 
     y_to_plot, σs, xs, labels = get_summary(
+
         sweep_dict = sweep_dict,
         score_dict = score_dict,
         key_list = key_list,
@@ -127,18 +128,24 @@ function get_summary(;
 
     xs = nothing
     for key in top_keys
-        score = score_dict[key][1][1]
-        config = key
 
-        standard_dev = score_dict[key][1][2]
-        formatted_config = format_config(config)
-
-        labels = push!(labels, formatted_config)
-
-        info_dicts = sweep_dict[config]
+        info_dicts = sweep_dict[key]
         data = []
+        try
+            info_dicts[1][metric_key]
+        catch
+            println(key)
+            println(metric_key)
+            continue
+        end
+        formatted_config = format_config(key)
+        labels = push!(labels, formatted_config)
         for info_dict in info_dicts
-            ys = map(x-> x[1], info_dict[metric_key])
+            if metric_key == "online_returns"
+                ys = map(x-> x[1][1], info_dict[metric_key])
+            else
+                ys = map(x-> x[1], info_dict[metric_key])
+            end
             push!(data, ys)
         end
 
@@ -153,15 +160,15 @@ function get_summary(;
         y_data = mean(stacked_data, dims = 2)[1:L]
         σ = (1.96 * std(stacked_data, dims = 2) / sqrt(N))[1:L]
 
-        if metric_key == primary_metric_key
-            println(" | ", format_config(config, ", "), " | ")
-            print(" | score:  ", score)
-            print(" | score std err:  ", standard_dev)
-            println()
-            print(" | final performance: ", y_data[end])
-            println(" | final std err: ", σ[end], " | ")
-            println()
-        end
+        score = score_dict[key][1][1]
+        standard_dev = score_dict[key][1][2]
+        println(" | ", format_config(key, ", "), " | ")
+        print(" | score:  ", score)
+        print(" | score std err:  ", standard_dev)
+        println()
+        print(" | final performance: ", y_data[end])
+        println(" | final std err: ", σ[end], " | ")
+        println()
         push!(y_to_plot, y_data)
         push!(σs, σ)
     end
