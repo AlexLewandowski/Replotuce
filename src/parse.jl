@@ -29,7 +29,7 @@ function gen_dict(;
             end
 
             data = FileIO.load(string(r, "/", "data.jld2"))
-            settings = FileIO.load(string(r, "/", "settings.jld2"))
+            # settings = FileIO.load(string(r, "/", "settings.jld2"))
 
             parsed = data["parsed"]
 
@@ -53,7 +53,8 @@ function gen_dict(;
             if corr_key_val == true
                 info = Dict[]
                 info = Dict([
-                    ("settings", settings),
+                    # ("settings", settings),
+                    ("settings", 1)
                     (metric_keys[1], data[dict_name][metric_keys[1]])
                 ])
                 for metric_key in metric_keys[2:end]

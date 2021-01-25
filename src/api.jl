@@ -98,7 +98,7 @@ function get_top_keys(score_dict, profiler, top_n, higher_is_better)
     return top_keys
 end
 
-function get_dicts(; results_dir = "_results/", dict_name = "online_dict", recompute = false)
+function get_dicts(results_dir = "_results/", dict_name = "online_dict"; recompute = false)
     dict_path = joinpath(results_dir, dict_name*".jld2")
 
     if isfile(dict_path) && !recompute
@@ -167,7 +167,7 @@ function get_results(;
     end
 
     sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
-        get_dicts(results_dir = results_dir, dict_name = dict_name)
+        get_dicts(results_dir, dict_name)
     if AUC
         score_dict = auc_score_dict
     elseif MAX
