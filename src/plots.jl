@@ -58,7 +58,6 @@ function get_plot(;
     num_plots = length(top_keys)
 
     y_to_plot, σs, xs, labels = get_summary(
-
         sweep_dict = sweep_dict,
         score_dict = score_dict,
         key_list = key_list,
@@ -79,16 +78,22 @@ function get_plot(;
     legend_fnt = Plots.font("Helvetica", 7)
     default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
+    L = Int(floor(length(xs)*X_lim)) + 1
+    y_to_plot_trunc = []
+    for y in y_to_plot
+        push!(y_to_plot_trunc, y[L:end])
+    end
+    xs_trunc = xs[L:end]
     plot(
-        xs,
-        y_to_plot,
+        xs_trunc,
+        y_to_plot_trunc,
         ribbon = σs,
         fillalpha = 0.5,
         label = labels,
         linestyle = get_styles(num_plots),
         marker = get_markers(num_plots),
         title = title,
-        xlims = (0,Inf),
+        xlims = (xs_trunc[1] - 1,Inf),
         ylims = [-Inf,Inf],
         legend = :topleft,
         background_color_legend = nothing,
@@ -150,7 +155,11 @@ function get_summary(;
         end
 
         xs = map(x-> x[2], info_dicts[1][metric_key])
-        L = Int(floor(length(xs)*X_lim))
+        @assert xs == sort(xs)
+        if length(xs) > 1
+            @assert xs[1] != xs[2]
+        end
+        L = length(xs)
         xs = xs[1:L]
 
         N = size(data)[1]
@@ -160,8 +169,8 @@ function get_summary(;
         y_data = mean(stacked_data, dims = 2)[1:L]
         σ = (1.96 * std(stacked_data, dims = 2) / sqrt(N))[1:L]
 
-        score = score_dict[key][1][1]
-        standard_dev = score_dict[key][1][2]
+        score = score_dict[metric_key][key][1][1]
+        standard_dev = score_dict[metric_key][key][1][2]
         println(" | ", format_config(key, ", "), " | ")
         print(" | score:  ", score)
         print(" | score std err:  ", standard_dev)

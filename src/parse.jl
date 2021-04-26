@@ -1,8 +1,6 @@
 function gen_dict(;
     sweep_keys,
     data_dir,
-    sweep_key = Nothing,
-    sweep_val = Nothing,
     dict_name = "online_dict"
 )
     sweep_dict = Dict()
@@ -22,14 +20,9 @@ function gen_dict(;
     for (r, ds, fs) in walkdir(data_dir)
         if isempty(fs)
         else
-            if sweep_key == Nothing
-                corr_key_val = true
-            else
-                corr_key_val = false
-            end
 
             data = FileIO.load(string(r, "/", "data.jld2"))
-            # settings = FileIO.load(string(r, "/", "settings.jld2"))
+            settings = FileIO.load(string(r, "/", "settings.jld2"))
 
             parsed = data["parsed"]
 
@@ -43,28 +36,18 @@ function gen_dict(;
                 if key != "seed" && key != "uniqueID"
                     sweep_param[key] = parsed[key]
                 end
-                if key == sweep_key
-                    if parsed[key] == sweep_val
-                        corr_key_val = true
-                    end
-                end
             end
 
-            if corr_key_val == true
-                info = Dict[]
-                info = Dict([
-                    # ("settings", settings),
-                    ("settings", 1)
-                    (metric_keys[1], data[dict_name][metric_keys[1]])
-                ])
-                for metric_key in metric_keys[2:end]
-                    info[metric_key] = data[dict_name][metric_key]
-                end
-                info["metric_keys"] = metric_keys
-                push_dict!(sweep_dict, sweep_param, info)
-                # close(data)
-                # close(settings)
+            info = Dict[]
+            info = Dict([
+                ("settings", settings),
+                (metric_keys[1], data[dict_name][metric_keys[1]])
+            ])
+            for metric_key in metric_keys[2:end]
+                info[metric_key] = data[dict_name][metric_key]
             end
+            info["metric_keys"] = metric_keys
+            push_dict!(sweep_dict, sweep_param, info)
         end
     end
     return sweep_dict, key_list, metric_keys_global

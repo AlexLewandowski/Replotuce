@@ -6,6 +6,8 @@ using Pkg.TOML
 function get_config_data(results_dir)
     data_dir = joinpath(results_dir, "data")
 
+    println(results_dir)
+    results_dir = results_dir*"/settings"
     conf = readdir(results_dir)
     filter!(s -> occursin("config_", s), conf)
     ind = argmax(ctime.(results_dir.*conf))
@@ -22,32 +24,32 @@ end
 function get_metric_local(metric_key, profiler_name, top_n)
     config_title = " (top " * string(top_n) * ", " * profiler_name * " configurations)"
 
-    if metric_key[1:4] == "loss"
-        higher_is_better = false
-    else
-        higher_is_better = true
-    end
+    higher_is_better = false
 
     if metric_key == "rollout_returns"
         title = "Average return" #* config_title
         xlabel = "Number of epochs"
         ylabel = "Average return"
+        higher_is_better = true
     elseif metric_key == "average_returns"
         title = "Average Return" #* config_title
         xlabel = "Number of epochs"
         ylabel = "Average return"
-    elseif metric_key == "train_buffer_loss"
-        title = "Training Buffer Loss"# * config_title
-        xlabel = "Number of epochs"
-        ylabel = "Training loss"
+        higher_is_better = true
     elseif metric_key == "estimate_value"
         title = "Mean Estimated Value in Training Buffer"# * config_title
         xlabel = "Number of epochs"
         ylabel = "Estimated value"
+        higher_is_better = true
+    elseif metric_key == "train_buffer_loss"
+        title = "Training Buffer Loss"# * config_title
+        xlabel = "Number of epochs"
+        ylabel = "Training loss"
     elseif metric_key == "estimate_startvalue"
         title = "Estimated Value at Start State"# * config_title
         xlabel = "Number of epochs"
         ylabel = "Estimated value"
+        higher_is_better = true
     elseif metric_key == "mean_weights"
         title = "Mean of Recurrent Weights"# * config_title
         xlabel = "Number of epochs"
@@ -56,6 +58,7 @@ function get_metric_local(metric_key, profiler_name, top_n)
         title = "Online Return"# * config_title
         xlabel = "Number of epochs"
         ylabel = "Average return"
+        higher_is_better = true
     elseif metric_key == "action_gap"
         title = "Average Action-Gap"# * config_title
         xlabel = "Number of epochs"
@@ -158,7 +161,7 @@ function get_results(;
     AUC = false,
     MAX = false,
     dict_name = "online_dict",
-    X_lim = 1,
+    X_lim = 0.0,
 )
     if plots == true
         result_type = get_plot
@@ -209,10 +212,9 @@ function get_results(;
 
     println("Primary metric key is: ", primary_metric_key)
 
-    score_dict = score_dict[primary_metric_key]
 
     _, _, _, higher_is_better = get_metric_local(primary_metric_key, profiler_name, top_n)
-    top_keys = get_top_keys(score_dict, profiler, top_n, higher_is_better)
+    top_keys = get_top_keys(score_dict[primary_metric_key], profiler, top_n, higher_is_better)
 
     println()
     println("Dictionary being used: ", dict_name)
