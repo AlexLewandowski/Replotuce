@@ -26,7 +26,13 @@ function gen_dict(;
 
             parsed = data["parsed"]
 
+            if isempty(data[dict_name])
+                @warn "Dictionary is empty: " dict_name
+                break
+            end
+
             metric_keys = collect(keys(data[dict_name]))
+
             metric_keys_global = copy(metric_keys)
 
             sweep_param = Dict()

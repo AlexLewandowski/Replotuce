@@ -179,6 +179,11 @@ function get_results(;
         score_dict = end_score_dict
     end
 
+    if isempty(sweep_dict)
+        @warn "The dictionary is empty: " dict_name
+        return
+    end
+
     if typeof(profiler) == String
         config_file, _ = get_config_data(results_dir)
         vals = eval(TOML.parsefile(config_file)["sweep_args"][profiler])
