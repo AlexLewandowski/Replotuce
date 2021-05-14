@@ -44,16 +44,17 @@ function get_plot(;
     key_list,
     results_dir,
     metric_key,
-    title,
-    xlabel,
-    ylabel,
     primary_metric_key,
     profiler_name,
     top_keys,
     top_n = 3,
-    higher_is_better = true,
     X_lim = 1,
+    plot_results = false,
+    print_summary = false,
 )
+    println("Plotting for metric key: ", metric_key)
+    println()
+    title, xlabel, ylabel, higher_is_better = get_metric_local(metric_key, profiler_name, top_n)
 
     num_plots = length(top_keys)
 
@@ -72,42 +73,49 @@ function get_plot(;
         top_n = top_n,
         higher_is_better = higher_is_better,
         X_lim = X_lim,
+        print_summary = print_summary,
     )
 
-    fnt = Plots.font("Helvetica", 10)
-    legend_fnt = Plots.font("Helvetica", 7)
-    default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
+    if plot_results
+        fnt = Plots.font("Helvetica", 10)
+        legend_fnt = Plots.font("Helvetica", 7)
+        default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
-    L = Int(floor(length(xs)*X_lim)) + 1
-    y_to_plot_trunc = []
-    for y in y_to_plot
-        push!(y_to_plot_trunc, y[L:end])
+        L = Int(floor(length(xs)*X_lim)) + 1
+        y_to_plot_trunc = []
+        for y in y_to_plot
+            push!(y_to_plot_trunc, y[L:end])
+        end
+        xs_trunc = xs[L:end]
+        if sum(vcat([isnan.(y) for y in y_to_plot_trunc]...)) > 0
+            println("Aborting - NaN in loss for metric_key: "*metric_key)
+            return
+        end
+
+        plot(
+            xs_trunc,
+            y_to_plot_trunc,
+            ribbon = σs,
+            fillalpha = 0.5,
+            label = labels,
+            linestyle = get_styles(num_plots),
+            marker = get_markers(num_plots),
+            title = title,
+            xlims = (xs_trunc[1] - 1,Inf),
+            ylims = [-Inf,Inf],
+            legend = :topleft,
+            background_color_legend = nothing,
+        )
+
+        xlabel!(xlabel)
+        ylabel!(ylabel)
+
+        plots_dir = joinpath(results_dir, "plots")
+        mkpath(plots_dir)
+
+        fig_name = joinpath(plots_dir, metric_key * "-" * profiler_name * ".pdf")
+        savefig(fig_name)
     end
-    xs_trunc = xs[L:end]
-    plot(
-        xs_trunc,
-        y_to_plot_trunc,
-        ribbon = σs,
-        fillalpha = 0.5,
-        label = labels,
-        linestyle = get_styles(num_plots),
-        marker = get_markers(num_plots),
-        title = title,
-        xlims = (xs_trunc[1] - 1,Inf),
-        ylims = [-Inf,Inf],
-        legend = :topleft,
-        background_color_legend = nothing,
-    )
-
-    xlabel!(xlabel)
-    ylabel!(ylabel)
-
-    plots_dir = joinpath(results_dir, "plots")
-    mkpath(plots_dir)
-
-    fig_name = joinpath(plots_dir, metric_key * "-" * profiler_name * ".pdf")
-    savefig(fig_name)
-
 end
 
 function get_summary(;
@@ -122,9 +130,10 @@ function get_summary(;
     primary_metric_key,
     profiler_name,
     top_keys,
+    higher_is_better,
     top_n = 3,
-    higher_is_better = true,
     X_lim = 1.0,
+    print_summary = true,
 )
 
     y_to_plot = []
@@ -171,13 +180,15 @@ function get_summary(;
 
         score = score_dict[metric_key][key][1][1]
         standard_dev = score_dict[metric_key][key][1][2]
-        println(" | ", format_config(key, ", "), " | ")
-        print(" | score:  ", score)
-        print(" | score std err:  ", standard_dev)
-        println()
-        print(" | final performance: ", y_data[end])
-        println(" | final std err: ", σ[end], " | ")
-        println()
+        if print_summary
+            println(" | ", format_config(key, ", "), " | ")
+            print(" | score:  ", score)
+            print(" | score std err:  ", standard_dev)
+            println()
+            print(" | final performance: ", y_data[end])
+            println(" | final std err: ", σ[end], " | ")
+            println()
+        end
         push!(y_to_plot, y_data)
         push!(σs, σ)
     end

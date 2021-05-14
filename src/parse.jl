@@ -38,13 +38,11 @@ function gen_dict(;
             sweep_param = Dict()
 
             for key in sweep_keys
-
                 if key != "seed" && key != "uniqueID"
                     sweep_param[key] = parsed[key]
                 end
             end
 
-            info = Dict[]
             info = Dict([
                 ("settings", settings),
                 (metric_keys[1], data[dict_name][metric_keys[1]])
@@ -78,7 +76,7 @@ function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
                 stat = map(x-> x[1], info[metric_key])
                 per_seed = push!(per_seed, stat)
                 if sum(isnan.(stat)) != 0
-                    throw("NaN in loss!!")
+                    println("NaN in loss for metric_key: "*metric_key)
                 end
             end
             per_seed_mat = hcat(per_seed...)

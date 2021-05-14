@@ -7,10 +7,10 @@ function get_config_data(results_dir)
     data_dir = joinpath(results_dir, "data")
 
     println(results_dir)
-    results_dir = results_dir*"/settings"
+    results_dir = results_dir * "/settings"
     conf = readdir(results_dir)
     filter!(s -> occursin("config_", s), conf)
-    ind = argmax(ctime.(results_dir.*conf))
+    ind = argmax(ctime.(results_dir .* conf))
 
     config_file = joinpath(results_dir, conf[ind])
 
@@ -84,7 +84,7 @@ function get_top_keys(score_dict, profiler, top_n, higher_is_better)
             for new_k in new_ks
                 push!(local_top_keys, new_k)
             end
-            sort!(local_top_keys, by=x->score_dict[x][1][1], rev = higher_is_better)
+            sort!(local_top_keys, by = x -> score_dict[x][1][1], rev = higher_is_better)
             if length(local_top_keys) < top_n
                 println("top_n is too high! top_n = " * string(top_n))
                 println("This profile is: " * string(profile))
@@ -94,7 +94,7 @@ function get_top_keys(score_dict, profiler, top_n, higher_is_better)
             push!(top_keys, local_top_keys[1:top_n]...)
         end
     else
-        sorted_keys = sort(k, by=x->score_dict[x][1][1], rev = higher_is_better)
+        sorted_keys = sort(k, by = x -> score_dict[x][1][1], rev = higher_is_better)
         top_keys = sorted_keys[1:top_n]
     end
 
@@ -102,7 +102,7 @@ function get_top_keys(score_dict, profiler, top_n, higher_is_better)
 end
 
 function get_dicts(results_dir = "_results/", dict_name = "online_dict"; recompute = false)
-    dict_path = joinpath(results_dir, dict_name*".jld2")
+    dict_path = joinpath(results_dir, dict_name * ".jld2")
 
     if isfile(dict_path) && !recompute
         println()
@@ -119,11 +119,8 @@ function get_dicts(results_dir = "_results/", dict_name = "online_dict"; recompu
         config_file, data_dir = get_config_data(results_dir)
         sweep_keys = keys(parsefile(config_file)["sweep_args"])
 
-        sweep_dict, key_list, metric_keys = gen_dict(
-            sweep_keys = sweep_keys,
-            data_dir = data_dir,
-            dict_name = dict_name,
-        )
+        sweep_dict, key_list, metric_keys =
+            gen_dict(sweep_keys = sweep_keys, data_dir = data_dir, dict_name = dict_name)
 
         auc_score_dict = gen_scores(
             sweep_dict = sweep_dict,
@@ -154,7 +151,9 @@ end
 function get_results(;
     results_dir = "_results/",
     primary_metric_key = "rollout_returns",
-    plots = false,
+    plot_results = false,
+    print_summary = false,
+    async = false,
     top_n = 3,
     profiler = [[[]]],
     profiler_name = "all",
@@ -163,12 +162,6 @@ function get_results(;
     dict_name = "online_dict",
     X_lim = 0.0,
 )
-    if plots == true
-        result_type = get_plot
-    else
-        result_type = get_summary
-    end
-
     sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
         get_dicts(results_dir, dict_name)
     if AUC
@@ -209,7 +202,7 @@ function get_results(;
     println("metric keys: ", metric_keys)
     if primary_metric_key ∉ metric_keys
         # primary_metric_key = 1
-        primary_metric_key  = "online_returns"
+        primary_metric_key = "online_returns"
     end
     if typeof(primary_metric_key) <: Int
         primary_metric_key = metric_keys[primary_metric_key]
@@ -219,32 +212,45 @@ function get_results(;
 
 
     _, _, _, higher_is_better = get_metric_local(primary_metric_key, profiler_name, top_n)
-    top_keys = get_top_keys(score_dict[primary_metric_key], profiler, top_n, higher_is_better)
+    top_keys =
+        get_top_keys(score_dict[primary_metric_key], profiler, top_n, higher_is_better)
 
     println()
     println("Dictionary being used: ", dict_name)
     println()
-    for metric_key in metric_keys
-        println(metric_key)
-        println("Metric key: ", metric_key)
-        println()
-        title, xlabel, ylabel, higher_is_better = get_metric_local(metric_key, profiler_name, top_n)
-
-        r = result_type(
-            sweep_dict = sweep_dict,
-            score_dict = score_dict,
-            key_list = key_list,
-            metric_key = metric_key,
-            title = title,
-            xlabel = xlabel,
-            ylabel = ylabel,
-            results_dir = results_dir,
-            primary_metric_key = primary_metric_key,
-            profiler_name = profiler_name,
-            top_keys = top_keys,
-            top_n = top_n,
-            higher_is_better = higher_is_better,
-            X_lim = X_lim,
-        )
+    if async
+        @sync for metric_key in metric_keys
+            @async get_plot(
+                sweep_dict = sweep_dict,
+                score_dict = score_dict,
+                key_list = key_list,
+                metric_key = metric_key,
+                results_dir = results_dir,
+                primary_metric_key = primary_metric_key,
+                profiler_name = profiler_name,
+                top_keys = top_keys,
+                top_n = top_n,
+                X_lim = X_lim,
+                plot_results = plot_results,
+                print_summary = print_summary,
+            )
+        end
+    else
+        for metric_key in metric_keys
+            get_plot(
+                sweep_dict = sweep_dict,
+                score_dict = score_dict,
+                key_list = key_list,
+                metric_key = metric_key,
+                results_dir = results_dir,
+                primary_metric_key = primary_metric_key,
+                profiler_name = profiler_name,
+                top_keys = top_keys,
+                top_n = top_n,
+                X_lim = X_lim,
+                plot_results = plot_results,
+                print_summary = print_summary,
+            )
+        end
     end
 end
