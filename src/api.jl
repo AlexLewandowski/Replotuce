@@ -153,7 +153,6 @@ function get_results(;
     primary_metric_key = "rollout_returns",
     plot_results = false,
     print_summary = false,
-    async = false,
     top_n = 3,
     profiler = [[[]]],
     profiler_name = "all",
@@ -218,39 +217,20 @@ function get_results(;
     println()
     println("Dictionary being used: ", dict_name)
     println()
-    if async
-        @sync for metric_key in metric_keys
-            @async get_plot(
-                sweep_dict = sweep_dict,
-                score_dict = score_dict,
-                key_list = key_list,
-                metric_key = metric_key,
-                results_dir = results_dir,
-                primary_metric_key = primary_metric_key,
-                profiler_name = profiler_name,
-                top_keys = top_keys,
-                top_n = top_n,
-                X_lim = X_lim,
-                plot_results = plot_results,
-                print_summary = print_summary,
-            )
-        end
-    else
-        for metric_key in metric_keys
-            get_plot(
-                sweep_dict = sweep_dict,
-                score_dict = score_dict,
-                key_list = key_list,
-                metric_key = metric_key,
-                results_dir = results_dir,
-                primary_metric_key = primary_metric_key,
-                profiler_name = profiler_name,
-                top_keys = top_keys,
-                top_n = top_n,
-                X_lim = X_lim,
-                plot_results = plot_results,
-                print_summary = print_summary,
-            )
-        end
+    for metric_key in metric_keys
+        get_plot(
+            sweep_dict = sweep_dict,
+            score_dict = score_dict,
+            key_list = key_list,
+            metric_key = metric_key,
+            results_dir = results_dir,
+            primary_metric_key = primary_metric_key,
+            profiler_name = profiler_name,
+            top_keys = top_keys,
+            top_n = top_n,
+            X_lim = X_lim,
+            plot_results = plot_results,
+            print_summary = print_summary,
+        )
     end
 end

@@ -105,7 +105,7 @@ function get_plot(;
             ylims = [-Inf,Inf],
             legend = :topleft,
             background_color_legend = nothing,
-        )
+        );
 
         xlabel!(xlabel)
         ylabel!(ylabel)
