@@ -63,6 +63,11 @@ function get_metric_local(metric_key, profiler_name, top_n)
         title = "Average Action-Gap"# * config_title
         xlabel = "Number of epochs"
         ylabel = "Action gap"
+    elseif occursin("accuracy", metric_key)
+        title = metric_key
+        xlabel = "Number of epochs"
+        ylabel = metric_key
+        higher_is_better = true
     else
         title = metric_key
         xlabel = "Number of epochs"
