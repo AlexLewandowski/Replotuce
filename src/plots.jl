@@ -79,9 +79,9 @@ function get_plot(;
     )
 
     if plot_results
-        fnt = Plots.font("Helvetica", 10)
-        legend_fnt = Plots.font("Helvetica", 7)
-        default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
+        # fnt = Plots.font("Helvetica", 10)
+        # legend_fnt = Plots.font("Helvetica", 7)
+        # default(titlefont = fnt, guidefont = fnt, tickfont = fnt, legendfont = legend_fnt)
 
         L = Int(floor(length(xs)*X_lim)) + 1
         y_to_plot_trunc = []
@@ -89,7 +89,6 @@ function get_plot(;
             push!(y_to_plot_trunc, y[L:end])
         end
 
-        #if "agent_metric_count" in keys(collect(sweep_dict))
         xs_trunc = xs[L:end]
         if sum(vcat([isnan.(y) for y in y_to_plot_trunc]...)) > 0
             println("Aborting - NaN in loss for metric_key: "*metric_key)
@@ -148,32 +147,16 @@ function get_summary(;
     xs = nothing
     for key in top_keys
 
-        info_dicts = sweep_dict[key]
-        data = []
-        try
-            info_dicts[1][metric_key]
-        catch
-            println(key)
-            println(metric_key)
-            continue
-        end
         formatted_config = format_config(key)
         labels = push!(labels, formatted_config)
-        for info_dict in info_dicts
-            ys = info_dict[metric_key]
-            xs = info_dict[X_key]
-            push!(data, ys)
-        end
 
-        L = length(xs)
-        xs = xs[1:L]
+        stacked_data = stack_data(sweep_dict, key, metric_key)
+        xs = sweep_dict[key][1][X_key]
 
-        N = size(data)[1]
+        N = length(stacked_data)
 
-        stacked_data = hcat(data...)
-
-        y_data = mean(stacked_data, dims = 2)[1:L]
-        σ = (1.96 * std(stacked_data, dims = 2) / sqrt(N))[1:L]
+        y_data = mean(stacked_data)
+        σ = (1.96 * std(stacked_data) / sqrt(N))
 
         score = score_dict[metric_key][key][1][1]
         standard_dev = score_dict[metric_key][key][1][2]
@@ -190,6 +173,5 @@ function get_summary(;
         push!(σs, σ)
     end
     labels = reshape(labels, 1, :)
-    xs[end] += 1
     return y_to_plot, σs, xs, labels
 end

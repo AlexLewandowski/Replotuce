@@ -57,6 +57,11 @@ function gen_dict(;
     return sweep_dict, key_list, metric_keys_global
 end
 
+function stack_data(sweep_dict, config_key, metric_key)
+    L = length(sweep_dict[config_key])
+    [sweep_dict[config_key][i][metric_key] for i = 1:L]
+end
+
 function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
     sweep_keys = collect(keys(sweep_dict))
     all_score_dict = Dict()
