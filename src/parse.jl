@@ -73,9 +73,9 @@ function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
             infos = sweep_dict[key]
             per_seed = []
             for info in infos
-                stat = map(x-> x[1], info[metric_key])
-                per_seed = push!(per_seed, stat)
-                if sum(isnan.(stat)) != 0
+                stat = info[metric_key]
+                per_seed = push!(per_seed, info[metric_key])
+                if any(isnan.(stat))
                     println("NaN in loss for metric_key: "*metric_key)
                 end
             end

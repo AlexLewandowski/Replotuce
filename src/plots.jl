@@ -47,6 +47,7 @@ function get_plot(;
     primary_metric_key,
     profiler_name,
     top_keys,
+    X_key = "metric_count",
     top_n = 3,
     X_lim = 1,
     plot_results = false,
@@ -73,6 +74,7 @@ function get_plot(;
         top_n = top_n,
         higher_is_better = higher_is_better,
         X_lim = X_lim,
+        X_key = X_key,
         print_summary = print_summary,
     )
 
@@ -86,6 +88,8 @@ function get_plot(;
         for y in y_to_plot
             push!(y_to_plot_trunc, y[L:end])
         end
+
+        #if "agent_metric_count" in keys(collect(sweep_dict))
         xs_trunc = xs[L:end]
         if sum(vcat([isnan.(y) for y in y_to_plot_trunc]...)) > 0
             println("Aborting - NaN in loss for metric_key: "*metric_key)
@@ -131,6 +135,7 @@ function get_summary(;
     profiler_name,
     top_keys,
     higher_is_better,
+    X_key,
     top_n = 3,
     X_lim = 1.0,
     print_summary = true,
@@ -155,19 +160,11 @@ function get_summary(;
         formatted_config = format_config(key)
         labels = push!(labels, formatted_config)
         for info_dict in info_dicts
-            if metric_key == "online_returns"
-                ys = map(x-> x[1][1], info_dict[metric_key])
-            else
-                ys = map(x-> x[1], info_dict[metric_key])
-            end
+            ys = info_dict[metric_key]
+            xs = info_dict[X_key]
             push!(data, ys)
         end
 
-        xs = map(x-> x[2], info_dicts[1][metric_key])
-        @assert xs == sort(xs)
-        if length(xs) > 1
-            @assert xs[1] != xs[2]
-        end
         L = length(xs)
         xs = xs[1:L]
 
