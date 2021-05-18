@@ -85,11 +85,13 @@ function get_plot(;
 
         L = Int(floor(length(xs)*X_lim)) + 1
         y_to_plot_trunc = []
-        for y in y_to_plot
+        σ_to_plot_trunc = []
+        xs_trunc = xs[L:end]
+        for (y, σ) in zip(y_to_plot, σs)
             push!(y_to_plot_trunc, y[L:end])
+            push!(σ_to_plot_trunc, σ[L:end])
         end
 
-        xs_trunc = xs[L:end]
         if sum(vcat([isnan.(y) for y in y_to_plot_trunc]...)) > 0
             println("Aborting - NaN in loss for metric_key: "*metric_key)
             return
@@ -98,7 +100,7 @@ function get_plot(;
         plot(
             xs_trunc,
             y_to_plot_trunc,
-            ribbon = σs,
+            ribbon = σ_to_plot_trunc,
             fillalpha = 0.5,
             label = labels,
             linestyle = get_styles(num_plots),
@@ -108,7 +110,7 @@ function get_plot(;
             ylims = [-Inf,Inf],
             legend = :topleft,
             background_color_legend = nothing,
-        );
+        )
 
         xlabel!(xlabel)
         ylabel!(ylabel)
