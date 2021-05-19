@@ -47,7 +47,6 @@ function get_plot(;
     primary_metric_key,
     profiler_name,
     top_keys,
-    X_key = "metric_count",
     top_n = 3,
     X_lim = 1,
     plot_results = false,
@@ -74,7 +73,6 @@ function get_plot(;
         top_n = top_n,
         higher_is_better = higher_is_better,
         X_lim = X_lim,
-        X_key = X_key,
         print_summary = print_summary,
     )
 
@@ -106,7 +104,7 @@ function get_plot(;
             linestyle = get_styles(num_plots),
             marker = get_markers(num_plots),
             title = title,
-            xlims = (xs_trunc[1] - 1,Inf),
+            xlims = (xs_trunc[1] - 1,xs_trunc[end]+1),
             ylims = [-Inf,Inf],
             legend = :topleft,
             background_color_legend = nothing,
@@ -136,7 +134,6 @@ function get_summary(;
     profiler_name,
     top_keys,
     higher_is_better,
-    X_key,
     top_n = 3,
     X_lim = 1.0,
     print_summary = true,
@@ -153,6 +150,9 @@ function get_summary(;
         labels = push!(labels, formatted_config)
 
         stacked_data = stack_data(sweep_dict, key, metric_key)
+
+        metric_keys = collect(keys(sweep_dict[key][1]))
+        X_key = metric_keys[occursin.("_metric_count", metric_keys)][1]
         xs = sweep_dict[key][1][X_key]
 
         N = length(stacked_data)

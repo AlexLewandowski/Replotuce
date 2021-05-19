@@ -223,7 +223,6 @@ function get_results(;
     println("Dictionary being used: ", dict_name)
     println()
 
-    X_key = metric_keys[occursin.("_metric_count", metric_keys)][1]
     for metric_key in metric_keys
         get_plot(
             sweep_dict = sweep_dict,
@@ -236,7 +235,6 @@ function get_results(;
             top_keys = top_keys,
             top_n = top_n,
             X_lim = X_lim,
-            X_key = X_key,
             plot_results = plot_results,
             print_summary = print_summary,
         )
