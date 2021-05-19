@@ -224,6 +224,9 @@ function get_results(;
     println()
 
     for metric_key in metric_keys
+        if occursin("metric_count", metric_key)
+        elseif occursin("update_count", metric_key)
+        else
         get_plot(
             sweep_dict = sweep_dict,
             score_dict = score_dict,
@@ -238,5 +241,7 @@ function get_results(;
             plot_results = plot_results,
             print_summary = print_summary,
         )
+        end
+
     end
 end
