@@ -4,7 +4,7 @@ using Plots
 import Pkg.TOML: parsefile
 import FileIO
 import StatsBase: mean, std
-
+import StatsBase: trim, trimvar
 
 include("helper_functions.jl")
 include("parse.jl")

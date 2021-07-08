@@ -51,6 +51,7 @@ function get_plot(;
     X_lim = 1,
     plot_results = false,
     print_summary = false,
+    prop = 0.0,
 )
     println("Plotting for metric key: ", metric_key)
     println()
@@ -74,6 +75,7 @@ function get_plot(;
         higher_is_better = higher_is_better,
         X_lim = X_lim,
         print_summary = print_summary,
+        prop = prop,
     )
 
     if plot_results
@@ -95,6 +97,12 @@ function get_plot(;
             return
         end
 
+        if higher_is_better
+            legend_pos = :bottomright
+        else
+            legend_pos = :topleft
+        end
+
         plot(
             xs_trunc,
             y_to_plot_trunc,
@@ -106,7 +114,7 @@ function get_plot(;
             title = title,
             xlims = (xs_trunc[1] - 1,xs_trunc[end]+1),
             ylims = [-Inf,Inf],
-            legend = :topleft,
+            legend = legend_pos,
             background_color_legend = nothing,
         )
 
@@ -137,6 +145,7 @@ function get_summary(;
     top_n = 3,
     X_lim = 1.0,
     print_summary = true,
+    prop = 0.0,
 )
 
     y_to_plot = []
@@ -156,9 +165,12 @@ function get_summary(;
         xs = sweep_dict[key][1][X_key]
 
         N = length(stacked_data)
+        L = length(stacked_data[1])
 
-        y_data = mean(stacked_data)
-        σ = (1.96 * std(stacked_data) / sqrt(N))
+        temp_data = hcat(stacked_data...)
+        y_data = [mean(trim(temp_data[i, :], prop = prop)) for i = 1:L]
+        stdev = [std(trim(temp_data[i, :], prop = prop)) for i = 1:L]
+        σ = 1.00 * stdev / sqrt(N)
 
         score = score_dict[metric_key][key][1][1]
         standard_dev = score_dict[metric_key][key][1][2]
