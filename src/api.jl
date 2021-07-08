@@ -28,51 +28,42 @@ function get_metric_local(metric_key, profiler_name, top_n)
 
     if metric_key == "rollout_returns"
         title = "Average return" #* config_title
-        xlabel = "Number of epochs"
         ylabel = "Average return"
         higher_is_better = true
     elseif metric_key == "average_returns"
         title = "Average Return" #* config_title
-        xlabel = "Number of epochs"
         ylabel = "Average return"
         higher_is_better = true
     elseif metric_key == "estimate_value"
         title = "Mean Estimated Value in Training Buffer"# * config_title
-        xlabel = "Number of epochs"
         ylabel = "Estimated value"
         higher_is_better = true
     elseif metric_key == "train_buffer_loss"
         title = "Training Buffer Loss"# * config_title
-        xlabel = "Number of epochs"
         ylabel = "Training loss"
     elseif metric_key == "estimate_startvalue"
         title = "Estimated Value at Start State"# * config_title
-        xlabel = "Number of epochs"
         ylabel = "Estimated value"
         higher_is_better = true
     elseif metric_key == "mean_weights"
         title = "Mean of Recurrent Weights"# * config_title
-        xlabel = "Number of epochs"
         ylabel = "Mean weight"
     elseif metric_key == "online_returns"
         title = "Online Return"# * config_title
-        xlabel = "Number of epochs"
         ylabel = "Average return"
         higher_is_better = true
     elseif metric_key == "action_gap"
         title = "Average Action-Gap"# * config_title
-        xlabel = "Number of epochs"
         ylabel = "Action gap"
     elseif occursin("accuracy", metric_key)
         title = metric_key
-        xlabel = "Number of epochs"
         ylabel = metric_key
         higher_is_better = true
     else
         title = metric_key
-        xlabel = "Number of epochs"
         ylabel = metric_key
     end
+    xlabel = "Number of gradient steps"
     return title, xlabel, ylabel, higher_is_better
 end
 
@@ -116,9 +107,6 @@ function get_dicts(results_dir = "_results/", dict_name = "online_dict"; recompu
         all_dicts = FileIO.load(dict_path)
 
         sweep_dict = all_dicts["sweep_dict"]
-        end_score_dict = all_dicts["end_score_dict"]
-        max_score_dict = all_dicts["max_score_dict"]
-        auc_score_dict = all_dicts["auc_score_dict"]
         key_list = all_dicts["key_list"]
         metric_keys = all_dicts["metric_keys"]
     else
@@ -128,30 +116,10 @@ function get_dicts(results_dir = "_results/", dict_name = "online_dict"; recompu
         sweep_dict, key_list, metric_keys =
             gen_dict(sweep_keys = sweep_keys, data_dir = data_dir, dict_name = dict_name)
 
-        auc_score_dict = gen_scores(
-            sweep_dict = sweep_dict,
-            metric_keys = metric_keys,
-            AUC = true,
-            MAX = false,
-        )
 
-        end_score_dict = gen_scores(
-            sweep_dict = sweep_dict,
-            metric_keys = metric_keys,
-            AUC = false,
-            MAX = false,
-        )
-
-        max_score_dict = gen_scores(
-            sweep_dict = sweep_dict,
-            metric_keys = metric_keys,
-            AUC = false,
-            MAX = true,
-        )
-
-        JLD2.@save joinpath(dict_path) sweep_dict auc_score_dict end_score_dict max_score_dict key_list metric_keys
+        JLD2.@save joinpath(dict_path) sweep_dict key_list, metric_keys #auc_score_dict end_score_dict max_score_dict key_list metric_keys
     end
-    return sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys
+    return sweep_dict, key_list, metric_keys #auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys
 end
 
 function get_results(;
@@ -162,19 +130,35 @@ function get_results(;
     top_n = 3,
     profiler = [[[]]],
     profiler_name = "all",
-    AUC = false,
-    MAX = false,
+    criteria = :auc,
     dict_name = "online_dict",
     X_lim = 0.0,
+    prop = 0.0,
 )
-    sweep_dict, auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys =
-        get_dicts(results_dir, dict_name)
-    if AUC
-        score_dict = auc_score_dict
-    elseif MAX
-        score_dict = max_score_dict
-    else
-        score_dict = end_score_dict
+    sweep_dict, key_list, metric_keys =
+        get_dicts(results_dir, dict_name);
+
+    if criteria == :auc
+        score_dict = gen_scores(
+            sweep_dict = sweep_dict,
+            metric_keys = metric_keys,
+            criteria = criteria,
+            prop = prop,
+        );
+    elseif criteria == :max
+        score_dict = gen_scores(
+            sweep_dict = sweep_dict,
+            metric_keys = metric_keys,
+            criteria = criteria,
+            prop = prop,
+        );
+    elseif criteria == :end
+        score_dict = gen_scores(
+            sweep_dict = sweep_dict,
+            metric_keys = metric_keys,
+            criteria = criteria,
+            prop = prop,
+        );
     end
 
     if isempty(sweep_dict)
@@ -240,6 +224,7 @@ function get_results(;
             X_lim = X_lim,
             plot_results = plot_results,
             print_summary = print_summary,
+            prop = prop,
         )
         end
 

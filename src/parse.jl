@@ -62,7 +62,7 @@ function stack_data(sweep_dict, config_key, metric_key)
     [sweep_dict[config_key][i][metric_key] for i = 1:L]
 end
 
-function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
+function gen_scores(; sweep_dict, metric_keys, criteria = :auc, prop = 0.0)
     sweep_keys = collect(keys(sweep_dict))
     all_score_dict = Dict()
 
@@ -85,24 +85,22 @@ function gen_scores(; sweep_dict, metric_keys, AUC = false, MAX = false)
                 end
             end
             per_seed_mat = hcat(per_seed...)
+            L = size(per_seed_mat)[1]
 
-            if AUC
-                statistic = mean(per_seed_mat)
-                std_per_seed = std(mean(per_seed_mat, dims = 1))
-                max_per_seed = maximum(mean(per_seed_mat, dims = 1))
-                min_per_seed = minimum(mean(per_seed_mat, dims = 1))
-            elseif MAX
-                ind = argmax(mean(per_seed_mat, dims = 2))[1]
-                statistic = mean(per_seed_mat[ind, :])
-                std_per_seed = std(per_seed_mat[ind, :])
-                max_per_seed = maximum(per_seed_mat[ind, :])
-                min_per_seed = minimum(per_seed_mat[ind, :])
-            else
-                statistic = mean(per_seed_mat[end, :])
-                std_per_seed = std(per_seed_mat[end, :])
-                max_per_seed = maximum(per_seed_mat[end, :])
-                min_per_seed = minimum(per_seed_mat[end, :])
+            if criteria == :auc
+                select_mat = [mean(trim(per_seed_mat[i, :], prop = prop)) for i = 1:L]
+            elseif criteria == :max
+                per_seed_mat_trimmed = [mean(trim(per_seed_mat[i, :], prop = prop)) for i = 1:L]
+                ind = argmax(per_seed_mat_trimmed)
+                select_mat = trim(per_seed_mat[ind, :], prop = prop)
+            elseif criteria == :end
+                select_mat = trim(per_seed_mat[end,:], prop = prop)
             end
+
+            statistic = mean(select_mat)
+            std_per_seed = std(select_mat)
+            max_per_seed = maximum(select_mat)
+            min_per_seed = minimum(select_mat)
             num_seeds = length(per_seed)
             mean_per_seed = mean(per_seed)
             se_per_seed = 1.96 * std_per_seed / sqrt(num_seeds)
