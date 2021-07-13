@@ -117,7 +117,7 @@ function get_dicts(results_dir = "_results/", dict_name = "online_dict"; recompu
             gen_dict(sweep_keys = sweep_keys, data_dir = data_dir, dict_name = dict_name)
 
 
-        JLD2.@save joinpath(dict_path) sweep_dict key_list, metric_keys #auc_score_dict end_score_dict max_score_dict key_list metric_keys
+        JLD2.@save joinpath(dict_path) sweep_dict key_list metric_keys #auc_score_dict end_score_dict max_score_dict key_list metric_keys
     end
     return sweep_dict, key_list, metric_keys #auc_score_dict, end_score_dict, max_score_dict, key_list, metric_keys
 end
